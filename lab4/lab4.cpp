@@ -1,7 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <cstdlib>
- 
+#include <bitset>
+#include <string>
+
+
 using namespace std;
  
  
@@ -289,11 +292,65 @@ int userHelper(string &input, int &equalPos)
     return index; //not found SET, HELP, LIST
 }
 
-/* Helper will convert the set of numbers to int and assign to a bit set.
-    Each of index in the bit set represents for that number.
+/*  Helper will convert the set of numbers to int
+    seperate each number by comma and add them up.
 */
 
-int setHelper
+unsigned long setHelper(string &input)
 {
-    
+    bitset<32> num;
+    int i = 0; //initial index of each number
+    while(input.size() > 0)
+    {
+        int pos = input.find_first_of(','); //get index of first comma
+        if(pos < input.size())
+        {
+            string strNumber = input.substr(0, pos); //get first sub string number
+            try
+            {
+                bitset.flip(stoi(strNumber));
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << "Bitset is over 256" << '\n';
+            }
+            //remove the sub-string
+            input.substr(0, pos + 1);
+        }
+        //the last number include with '}'
+        else
+        {
+            int posBracket = input.find_first_of('}');
+            string strNumber = input.substr(0,posBracket);
+            try
+            {
+                bitset.flip(stoi(strNumber));
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << "Bitset is over 32 bit range" << '\n';
+            }
+            //remove the sub-string
+            input.substr(0, pos + 1);
+        }   
+    }    
+    return num.to_ulong();
+}
+
+/* 
+    Convert bit to the set of number.
+    and print out
+ */
+void printBitSet(unsigned long num)
+{
+    bitset<32> bitNum = num;
+    for(int i = 0; i < bitNum.size(); ++i)
+    {
+        if(i = 0)
+            cout << "{" ;
+        else if(i = bitNum.size() -1)
+            cout << "}";
+        else if(bitNum.test(i))
+            cout << i << ",";        
+    }
 }
