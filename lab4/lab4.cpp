@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <bitset>
 #include <string>
-
+#include <array>
 
 using namespace std;
  
@@ -14,11 +14,12 @@ bool precedence(const string &incoming, const string &tos);
 bool convertToRPN(string input, string& output);
 bool getInput(string &line);
 void process(string rpn, int sets[], int index);
-unsigned int unionOfTwoSets(string x, string y, string &result);
-unsigned int intersectionOfTwoSets(string x, string y, string &result);
-unsigned int differenceOfTwoSets(string x, string y, string &result);
-unsigned int setCompliment(string x, string &result);
+unsigned int unionOfTwoSets(string x, string y, string &result,sets[]);
+unsigned int intersectionOfTwoSets(string x, string y, string &result,sets[]);
+unsigned int differenceOfTwoSets(string x, string y, string &result,sets[]);
+unsigned int setCompliment(string x, string &result,sets[]);
 int userHelper(string &input, int &equalPos);
+bitset<32> setHelper(string &input);
 
 int main()
 {
@@ -31,7 +32,7 @@ int main()
     {
         index = userHelper(line,equalPos); // get index of a set
         cout << "The input after eliminate the l-expression:" << line 
-             << "the index is " << index << " " << endl;
+             << "\nthe index is " << index << " " << endl;
 
         //check if the input is invalid or not
         if(convertToRPN(line, output) && index != -1) //See if we can convert infix to postfix notation
@@ -162,7 +163,7 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
     vector<string> operandStack;        //Create an operand and operator stack
     vector<char> operatorStack;
     string set, x, y, output;           //Create some temporary variables
-    cout<<"Translated to RPN: "<<rpn<<endl;
+    cout<<"Translated to RPN: "<< rpn <<endl;
     while(rpn.size() > 0)               //As long as there are inputs available
     {
         if(rpn[0] >= 'A' && rpn[0] <= 'Z') //If a named set, push onto the operand stack
@@ -178,8 +179,9 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             break;
                 case '{' :  pos = rpn.find('}');//If curly braces, get the unnamed set
                             set = (rpn.substr(0, pos + 1));
-                            operandStack.push_back(set); //and push it onto the operand stack
-                            rpn.erase(0, pos+1);         //Then remove it from the RPN input
+                            // operandStack.push_back(set); //and push it onto the operand stack                            
+                            operandStack.push_back(setHelper(set).to_string()); //convert bitset<32> to string and push to stack
+                            // rpn.erase(0, pos+1);         //Then remove it from the RPN input
                             break;
                 case '!' :  x = operandStack.back();     //If compliment operator
                             operandStack.pop_back();     //Pop an operand and
@@ -191,7 +193,7 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             operandStack.pop_back();    //Pop them, then perform the union
                             y = operandStack.back();
                             operandStack.pop_back();
-                            result = unionOfTwoSets(x, y, output);
+                            result = unionOfTwoSets(x, y, output,sets);
                             operandStack.push_back(output); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
@@ -222,9 +224,24 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
  
 //The functions below are for you to complete. You can use bitset or ints, but you will have to
 //adjust the function above to work correctly with bitsets
-unsigned int unionOfTwoSets(string x, string y, string &result)
+unsigned int unionOfTwoSets(string x, string y, string &result,int[] sets)
 {
- 
+    bitset<32> setX;
+    bitset<32> setY;
+    //x is a set letter
+    if(x[0] >= 'A' && x[0] <= 'Z')
+    {
+        setX = sets[65-'A'];//convert number to bitset
+    }
+    //y is a set letter
+    if (y[0] >= 'A' && y[0] <= 'Z')
+    {
+        setY = sets[65 - 'A']; //convert number to bitset
+    }
+    //IF x or y not a set letter
+    //convert to 
+    setX = x.to_ulong(); 
+
 }
  
 unsigned int intersectionOfTwoSets(string x, string y, string &result)
@@ -243,10 +260,10 @@ unsigned int setCompliment(string x, string &result)
 }
 
 
-/* This function will read the command(SET) 
-from the user's input. If it's SET command, get the right expression
-assign to string array. Then get the first letter to determine the index of a set 
-If there is not "SET" command or "equal" sign, print an error message as an invalid input
+/*  This function will read the command(SET) 
+    from the user's input. If it's SET command, get the right expression
+    assign to string array. Then get the first letter to determine the index of a set.
+    If there is not "SET" command or "equal" sign, print an error message as an invalid input
     @index : index of a set in the sets array sets[26]
     @equalPos: return the position of "=" sign if there is "SET" command
 */
@@ -254,18 +271,9 @@ If there is not "SET" command or "equal" sign, print an error message as an inva
 int userHelper(string &input, int &equalPos)
 {
     unsigned int posSet = input.find("SET");
-    // unsigned int posHelp = input.find("HELP");
-    // unsigned int posList = input.find("LIST");
     unsigned int posEqual = input.find("=");
     string strSet = "";
-    int index = 0; //index of a set
-
-    // // HELP command
-    // if (posHelp < input.size())
-    //     index = 0;
-    // // LIST command
-    // else if (posList < input.size())
-    //     index = 1;
+    int index = -1; //index of a set
 
     //  SET command
     if (posSet < input.size() && posEqual < input.size())
@@ -286,55 +294,62 @@ int userHelper(string &input, int &equalPos)
                  << "Equal sign at pos is " << equalPos << endl;
         }
     }
-    else
-        return -1;//invalid input command
-
-    return index; //not found SET, HELP, LIST
+    return index; //return index of a set(A,B,C,etc..)
 }
 
 /*  Helper will convert the set of numbers to int
     seperate each number by comma and add them up.
 */
 
-unsigned long setHelper(string &input)
+bitset<32> setHelper(string &input)
 {
     bitset<32> num;
-    int i = 0; //initial index of each number
-    while(input.size() > 0)
+    int firstBracket = input.find_first_of("{");
+    int lastBracket = input.find_first_of("}");
+    string subSet = input.substr(firstBracket + 1, lastBracket - 1); // get sub set of the numbers
+
+    while (subSet.size() > 0)
     {
-        int pos = input.find_first_of(','); //get index of first comma
-        if(pos < input.size())
+        //comma(s) position
+        int pos = subSet.find_first_of(",");
+        cout << "Pos of comma is: " << pos << endl;
+        //not last number
+        if (pos < subSet.size())
         {
-            string strNumber = input.substr(0, pos); //get first sub string number
+            string strNumber = subSet.substr(0, pos);
             try
             {
-                bitset.flip(stoi(strNumber));
+                cout << "Bit position is: " << strNumber << endl;
+                num.flip(stoi(strNumber));
             }
             catch (const std::exception &e)
             {
-                std::cerr << e.what() << "Bitset is over 256" << '\n';
+                std::cerr << e.what() << '\n';
             }
-            //remove the sub-string
-            input.substr(0, pos + 1);
+            //remove substring
+            subSet.erase(0, pos + 1);
+            cout << "The subset after erase: " << subSet << endl;
         }
-        //the last number include with '}'
+        //last number
         else
         {
-            int posBracket = input.find_first_of('}');
-            string strNumber = input.substr(0,posBracket);
+            string strNumber = subSet.substr(); //get last number
             try
             {
-                bitset.flip(stoi(strNumber));
+                cout << "Bit position is: " << strNumber << endl;
+                num.flip(stoi(strNumber));
             }
             catch (const std::exception &e)
             {
-                std::cerr << e.what() << "Bitset is over 32 bit range" << '\n';
+                std::cerr << e.what() << " Last number " << '\n';
             }
-            //remove the sub-string
-            input.substr(0, pos + 1);
-        }   
-    }    
-    return num.to_ulong();
+            //remove last substring number in the set
+            subSet.erase(0, subSet.size());
+            cout << "The subset after erase: " << subSet << endl;
+        }
+    }
+    // return num.to_ulong();
+    return num;
 }
 
 /* 
@@ -344,13 +359,25 @@ unsigned long setHelper(string &input)
 void printBitSet(unsigned long num)
 {
     bitset<32> bitNum = num;
-    for(int i = 0; i < bitNum.size(); ++i)
+    // int numSet[32];
+    array<int, 32> numSet;
+    int index = 0; //index of numset array
+    for (int i = 0; i < bitNum.size(); ++i)
     {
-        if(i = 0)
-            cout << "{" ;
-        else if(i = bitNum.size() -1)
-            cout << "}";
-        else if(bitNum.test(i))
-            cout << i << ",";        
+        if (bitNum.test(i))
+        {
+            numSet[index] = i;
+            index++;
+            cout << i << endl;
+        }
+    }
+    for (int i = 0; i < index; ++i)
+    {
+        if (i == 0)
+            cout << "{" << numSet[i] << ", ";
+        else if (i == index - 1)
+            cout << numSet[i] << "}";
+        else
+            cout << numSet[i] << ", ";
     }
 }
