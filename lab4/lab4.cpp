@@ -14,17 +14,17 @@ bool precedence(const string &incoming, const string &tos);
 bool convertToRPN(string input, string& output);
 bool getInput(string &line);
 void process(string rpn, int sets[], int index);
-unsigned int unionOfTwoSets(string x, string y, string &result,sets[]);
-unsigned int intersectionOfTwoSets(string x, string y, string &result,sets[]);
-unsigned int differenceOfTwoSets(string x, string y, string &result,sets[]);
-unsigned int setCompliment(string x, string &result,sets[]);
+unsigned int unionOfTwoSets(string x, string y, string &output,int sets[]);
+unsigned int intersectionOfTwoSets(string x, string y, string &output,int sets[]);
+unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[]);
+unsigned int setCompliment(string x, string &output,int sets[]);
 int userHelper(string &input, int &equalPos);
 bitset<32> setHelper(string &input);
 
 int main()
 {
     string line, output;            //Create input (line) and output (output) variables for functions to use
-    int sets[26];                   //Create a 26 element array of sets
+    int sets[26] = {};                   //Create a 26 element array of sets
     int equalPos = -1;              //pos of equal sign
     int index = -1;                 //index of a set
 
@@ -179,13 +179,15 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             break;
                 case '{' :  pos = rpn.find('}');//If curly braces, get the unnamed set
                             set = (rpn.substr(0, pos + 1));
-                            // operandStack.push_back(set); //and push it onto the operand stack                            
-                            operandStack.push_back(setHelper(set).to_string()); //convert bitset<32> to string and push to stack
-                            // rpn.erase(0, pos+1);         //Then remove it from the RPN input
+                            // operandStack.push_back(set); //and push it onto the operand stack                                                        
+                            cout << "num after converted from set: " << std::to_string((setHelper(set).to_ulong())) << endl;
+                            result = setHelper(set).to_ulong();//set number to a set.
+                            operandStack.push_back(std::to_string((setHelper(set).to_ulong()))); //convert bitset<32> to string and push to stack
+                            rpn.erase(0, pos+1);         //Then remove it from the RPN input
                             break;
                 case '!' :  x = operandStack.back();     //If compliment operator
                             operandStack.pop_back();     //Pop an operand and
-                            result = setCompliment(x, output); //compliment it
+                            result = setCompliment(x, output,sets); //compliment it
                             operandStack.push_back(output); //Push the result back onto the operand stack
                             rpn.erase(0,1);
                             break;
@@ -201,7 +203,7 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             operandStack.pop_back();        //Pop them, then perform the intersection
                             y = operandStack.back();
                             operandStack.pop_back();
-                            result = intersectionOfTwoSets(x, y, output);//The place the result onto the operand stack
+                            result = intersectionOfTwoSets(x, y, output,sets);//The place the result onto the operand stack
                             operandStack.push_back(output); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
@@ -209,7 +211,7 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             operandStack.pop_back();        //Pop them, then perform the set difference
                             y = operandStack.back();
                             operandStack.pop_back();
-                            result = differenceOfTwoSets(y, x, output);//The place the result onto the operand stack
+                            result = differenceOfTwoSets(y, x, output,sets);//The place the result onto the operand stack
                             operandStack.push_back(output); //Delete from input the operand
                             rpn.erase(0,1);
                             break;
@@ -219,44 +221,138 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
 
     //assign the elements to a set with index
     sets[index] = result;
+    cout << "--------------------------------------------" << endl;
 }
  
  
 //The functions below are for you to complete. You can use bitset or ints, but you will have to
 //adjust the function above to work correctly with bitsets
-unsigned int unionOfTwoSets(string x, string y, string &result,int[] sets)
+unsigned int unionOfTwoSets(string x, string y, string &output,int sets[])
 {
-    bitset<32> setX;
-    bitset<32> setY;
+    bitset<16> setX = 0;
+    bitset<16> setY = 0;
+    cout << "String X is: " << x << endl;
+    cout << "String Y is: " << y << endl;
+
     //x is a set letter
     if(x[0] >= 'A' && x[0] <= 'Z')
     {
-        setX = sets[65-'A'];//convert number to bitset
+        setX = sets[x[0]-'A'];//convert number to bitset
+        // cout << "The bitset X is: " << setX << endl;
+        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
     }
+    else
+        setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
     //y is a set letter
     if (y[0] >= 'A' && y[0] <= 'Z')
     {
-        setY = sets[65 - 'A']; //convert number to bitset
+        setY = sets[y[0]-'A']; //convert number to bitset
+        // cout << "The bitset Y is: " << setX << endl;
+        cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
     }
-    //IF x or y not a set letter
-    //convert to 
-    setX = x.to_ulong(); 
+    else
+        setY = stoul(y,nullptr,0);
+    cout << "The bitset X is: " << setX << endl;
+    cout << "The bitset Y is: " << setY << endl;
+    //OR bitwise
+    setX |= setY;
+    output = std::to_string(setX.to_ulong());//convert int setX to string
+    cout << "The bitset after OR is: " << setX << endl;
+    cout << "The output after OR is: " << output << endl;
+    return setX.to_ulong();
+}
+ 
+unsigned int intersectionOfTwoSets(string x, string y, string &output, int sets[])
+{
+    bitset<16> setX = 0;
+    bitset<16> setY = 0;
+    cout << "String X is: " << x << endl;
+    cout << "String Y is: " << y << endl;
 
+    //x is a set letter
+    if(x[0] >= 'A' && x[0] <= 'Z')
+    {
+        setX = sets[x[0]-'A'];//convert number to bitset
+        // cout << "The bitset X is: " << setX << endl;
+        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
+    }
+    else
+        setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
+    //y is a set letter
+    if (y[0] >= 'A' && y[0] <= 'Z')
+    {
+        setY = sets[y[0]-'A']; //convert number to bitset
+        // cout << "The bitset Y is: " << setX << endl;
+        cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
+    }
+    else
+        setY = stoul(y,nullptr,0);
+    cout << "The bitset X is: " << setX << endl;
+    cout << "The bitset Y is: " << setY << endl;
+    //AND bitwise
+    setX &= setY;
+    output = std::to_string(setX.to_ulong());
+    cout << "The bitset after AND is: " << setX << endl;
+    cout << "The output after AND is: " << output << endl;
+    return setX.to_ulong();
 }
  
-unsigned int intersectionOfTwoSets(string x, string y, string &result)
+unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[])
 {
- 
+    bitset<16> setX = 0;
+    bitset<16> setY = 0;
+    cout << "String X is: " << x << endl;
+    cout << "String Y is: " << y << endl;
+
+    //x is a set letter
+    if(x[0] >= 'A' && x[0] <= 'Z')
+    {
+        setX = sets[x[0]-'A'];//convert number to bitset
+        // cout << "The bitset X is: " << setX << endl;
+        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
+    }
+    else
+        setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
+    //y is a set letter
+    if (y[0] >= 'A' && y[0] <= 'Z')
+    {
+        setY = sets[y[0]-'A']; //convert number to bitset
+        // cout << "The bitset Y is: " << setX << endl;
+        cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
+    }
+    else
+        setY = stoul(y,nullptr,0);
+    cout << "The bitset X is: " << setX << endl;
+    cout << "The bitset Y is: " << setY << endl;
+    //differentiation bitwise
+    setY.flip();//flip all bit
+    setX &= setY;
+    output = std::to_string(setX.to_ulong());
+    cout << "The bitset after \"difference\" is: " << setX << endl;
+    cout << "The output after \"difference\" is: " << output << endl;
+    return setX.to_ulong();
 }
  
-unsigned int differenceOfTwoSets(string x, string y, string &result)
+unsigned int setCompliment(string x, string &output, int sets[])
 {
- 
-}
- 
-unsigned int setCompliment(string x, string &result)
-{
- 
+    bitset<16> setX = 0;
+    cout << "String X is: " << x << endl;
+    //x is a set letter
+    if(x[0] >= 'A' && x[0] <= 'Z')
+    {
+        setX = sets[x[0]-'A'];//convert number to bitset
+        // cout << "The bitset X is: " << setX << endl;
+        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
+    }
+    else
+        setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
+    cout << "The bitset X is: " << setX << endl;
+    //Take COMPLIMENT
+    setX = setX.flip();
+    output = std::to_string(setX.to_ulong());
+    cout << "The bitset after \"difference\" is: " << setX << endl;
+    cout << "The output after \"difference\" is: " << output << endl;
+    return setX.to_ulong();
 }
 
 
@@ -312,14 +408,14 @@ bitset<32> setHelper(string &input)
     {
         //comma(s) position
         int pos = subSet.find_first_of(",");
-        cout << "Pos of comma is: " << pos << endl;
+        // cout << "Pos of comma is: " << pos << endl;
         //not last number
         if (pos < subSet.size())
         {
             string strNumber = subSet.substr(0, pos);
             try
             {
-                cout << "Bit position is: " << strNumber << endl;
+                // cout << "Bit position is: " << strNumber << endl;
                 num.flip(stoi(strNumber));
             }
             catch (const std::exception &e)
@@ -328,7 +424,7 @@ bitset<32> setHelper(string &input)
             }
             //remove substring
             subSet.erase(0, pos + 1);
-            cout << "The subset after erase: " << subSet << endl;
+            // cout << "The subset after erase: " << subSet << endl;
         }
         //last number
         else
@@ -336,7 +432,7 @@ bitset<32> setHelper(string &input)
             string strNumber = subSet.substr(); //get last number
             try
             {
-                cout << "Bit position is: " << strNumber << endl;
+                // cout << "Bit position is: " << strNumber << endl;
                 num.flip(stoi(strNumber));
             }
             catch (const std::exception &e)
@@ -345,7 +441,7 @@ bitset<32> setHelper(string &input)
             }
             //remove last substring number in the set
             subSet.erase(0, subSet.size());
-            cout << "The subset after erase: " << subSet << endl;
+            // cout << "The subset after erase: " << subSet << endl;
         }
     }
     // return num.to_ulong();
