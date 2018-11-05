@@ -4,10 +4,12 @@
 #include <string.h>
 #include <algorithm> // std::find
 #include <bitset>
+#include <map>
 
 using namespace std;
 
-unsigned int countLetter(string input);
+map<char, unsigned int> mapLetterToColumn(bitset<26> setLetters);
+bitset<26> countLetter(string input);
 bool invalidCharAfter(char inputChar) ;
 bool illegalImplication(string &input);
 void removeSpace(string &input);
@@ -334,10 +336,10 @@ bool invalidCharAfter(char inputChar)
 
 /*  Count the number of letters present in the valid RPN input
     to determine how many number of columns in the truthtable
+    and which letters present in the string input.
  */
-unsigned int countLetter(string input)
+bitset<26> countLetter(string input)
 {
-    unsigned int num = 0;   // number of letters
     bitset<26> letters = 0; // each bit represent the appearance of alphabet letter
     for (int i = 0; i < input.size(); ++i)
     {
@@ -349,5 +351,34 @@ unsigned int countLetter(string input)
         }
     }
     cout << "The total letters appear are: " << letters.count() << endl;
-    return letters.count();
+    return letters;
+}
+
+/*  Create a map<index of letter,index of column>
+    To determine which letter correspond to a truthtable's index column
+    Each ON bitset will map to index of corresponding column.
+    @letterMap: the cotainer store <key,value> with key is index of bitset,
+                value is index of the column
+    @index: the index of column correspond to the letter in the RPN expression                
+    @setLetters: bitset<26> represents the letters appear in RPN expression
+ */
+map<char, unsigned int> mapLetterToColumn(bitset<26> setLetters)
+{
+    map<char, unsigned int> letterMap;
+    unsigned int index = 0;
+    for (int i = 0; i < setLetters.size(); ++i)
+    {
+        //insert key is an index of ON bitset
+        //and value is an index of column
+        if (setLetters.test(i))
+        {
+            char c = char(65 + i);
+            letterMap.insert(pair<char, unsigned int>(c, index++));
+        }
+    }
+
+    map<char, unsigned int>::iterator it = letterMap.begin();
+    for (it = letterMap.begin(); it != letterMap.end(); ++it)
+        cout << it->first << " => " << it->second << '\n';
+    return letterMap;
 }
