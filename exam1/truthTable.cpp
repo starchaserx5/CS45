@@ -1,11 +1,14 @@
 #include <iostream>
 #include <vector>
 #include <cstdlib>
-#include <string>
+#include <string.h>
+#include <algorithm> // std::find
 
 using namespace std;
- 
- 
+
+bool invalidCharAfter(char inputChar) ;
+bool illegalImplication(string &input);
+void removeSpace(string &input);
 bool illegalSet(string input);
 int whoIsFirst(const string &incoming);
 bool precedence(const string &incoming, const string &tos);
@@ -22,11 +25,13 @@ int main()
     string line, output;            //Create input (line) and output (output) variables for functions to use
     int sets[26];                   //Create a 26 element array of sets
     while(getInput(line))           //As long as there is input from the keyboard
-    {
-        if(convertToRPN(line, output)) //See if we can convert infix to postfix notation
-            process(output,sets);      //If we can, process the input
-        else                           //If not, tell the user that there was bad input
-            cout<<"Illegal expression!"<<endl;
+    {        
+        if (convertToRPN(line, output)) //See if we can convert infix to postfix notation
+            process(output, sets); //process(output,sets); //If we can, process the input
+        else //If not, tell the user that there was bad input
+            cout << "Illegal expression!!!" << endl;
+        //     cout<<"The expression after reducing: " << line << endl;
+        //      cout << "--------------" <<endl;    
     }
     return 0;
 }
@@ -34,7 +39,7 @@ int main()
 bool getInput(string &line)
 {
     cout<<"In-fix expression: ";
-    getline(cin, line);                           //Get infix expression
+    getline(cin, line);                           //Get infix expression 
     fflush(stdin);                                //Clear input buffer
     for(unsigned int i = 0; i < line.size(); ++i) //standardize set names to uppercase
         line[i] = toupper(line[i]);
@@ -59,7 +64,7 @@ int whoIsFirst(const string &incoming) //Convert operator to its precedence valu
                    break;
         case '^' : value = 3;   //XOR
                    break;
-        case '=' : value = 2;  //Implication =>
+        case '>' : value = 2;  //Implication =>
                    break;
         case '<' : value = 1;  //Bi-Implication <=>
     }
@@ -71,10 +76,16 @@ bool illegalSet(string input)          //See if the user entered a double comma 
     unsigned int pos, size = input.size();
     while((pos = input.find(' ')) < size) //Find spaces
         input.erase(pos,1);
-    return (input.find(",,") < size ||
-            input.find("{,")  < size ||
-            input.find(",}") < size ||
-            input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ{,}") < size);
+    return (input.find("&&") < size || // operator appears twice
+            input.find("||") < size ||
+            input.find("@@") < size ||
+            input.find("%%") < size ||
+            input.find("^^") < size ||
+            input.find("==") < size ||
+            input.find("<<") < size ||
+            input.find("(,") < size ||
+            input.find(",)") < size ||
+            input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ()=><&|@%^") < size);
 }
  
 bool precedence(const string &incoming, const string &tos) //Return TRUE is incoming operator
@@ -84,77 +95,83 @@ bool precedence(const string &incoming, const string &tos) //Return TRUE is inco
  
 bool convertToRPN(string input, string &output)
 {
-      vector<string>  operatorStack;                //Holds operators
-      string  op, operand, parens;                          //Holds the current operator and operand
-      output = "";                                  //Initialize output to empty
-      unsigned int pos, pos2;                       //Used to find position of substrings within a string
-      while(input.size() > 0)                       //As long as there is still input
-      {
-          if(input[0]>='A' && input[0] <= 'Z')      //Did we read the name of a set?
-          {                                         //If so, move it directly to the output
-              operand = input[0];
-              output += operand + " ";
-              input.erase(0,1);                     //Remove the operand from the input
-          }
-          else                                      //Otherwise
-          {
-            switch(input[0])                        //See what the operator "could" be
-            {
-                case ' ' : input.erase(0,1);        //Dump any space that has been read from the input
-                           break;
-                case '{' : pos = input.find('}');   //If it is a open curly brace, we have an unnamed set
-                           pos2 = input.find('{', pos + 1);  //So see if it is a valid unnamed set
-                           if(pos > input.size() || pos2 < pos)
-                               return false;        //If not, signify that an invalid unnamed set was read in
-                           parens = (input.substr(0,pos + 1)) + " "; //It is is valid, pull it out of the input
-                           if(illegalSet(parens))   //Did they enter a double comma?
-                               return false;
-                           output += parens;        //Bad input!!
-                           input.erase(0,pos + 1);  //and remove it from the input
-                           break;
-                case '<' :
-                case '=' :
-                case '%' :
-                case '^' :
-                case '&' :                          //If it is any valid operator
-                case '|' :                         //we either immediately push it onto the operand stack
-                case '@' :                          //or push higher precedence operators currently in the stack
-                case '~' : op = input[0];           //onto the output
-                           while((operatorStack.size() > 0) && precedence(op, operatorStack[operatorStack.size()-1]))
-                           {
-                                output += operatorStack.back() + " ";
-                                operatorStack.pop_back();
-                           }
-                           operatorStack.push_back(op); //Insert current operator onto operator stack
-                           input.erase(0,1);            //Remove the current operator from input
-                           break;
-                case '(' : operatorStack.push_back("("); //Parenthesis are a "special case"
-                           input.erase(0,1);             //Push the opening onto the operand stack and wait till
-                           break;                        //a closing parentheses is found
-                case ')' : while(operatorStack.size() > 0 && operatorStack.back() != "(")
-                           {                             //Once found, keep pushing operators onto output
-                              output += operatorStack.back() + " ";
-                              operatorStack.pop_back();  //Until we either empty the stack or find a opening paren
-                           }
-                           if(operatorStack.size() == 0)
-                               return false;
-                           else
-                               operatorStack.pop_back();
-                           input.erase(0,1);
-                           break;
-                default  : return false;
-            }
-          }
+    //reduce '=>' or '<=>' to '>' or '<'
+    //check invalid operator & % ^ 
+    if(illegalSet(input) || !illegalImplication(input))             
+        return false;                             //invalid implication input check
+    cout << "The expression after reducing: " << input << endl;
+    vector<string>  operatorStack;                //Holds operators
+    string  op, operand, parens;                  //Holds the current operator and operand
+    output = "";                                  //Initialize output to empty
+    unsigned int pos, pos2;                       //Used to find position of substrings within a string
+    while(input.size() > 0)                       //As long as there is still input
+    {
+        if(input[0]>='A' && input[0] <= 'Z')      //Did we read the name of a set?
+        {                                         //If so, move it directly to the output
+            operand = input[0];
+            output += operand + " ";
+            input.erase(0,1);                     //Remove the operand from the input
         }
-        while(operatorStack.size() > 0)  //If there are any additional operators left on the stack
-        {                                //we push them onto output unless we find a mis-matched paren
-            string op = operatorStack.back();
-            if(op[0] == '(')
-                return false;
-            output += op + " ";
-            operatorStack.pop_back();
+        else                                      //Otherwise
+        {
+        switch(input[0])                        //See what the operator "could" be
+        {
+            case ' ' :  input.erase(0,1);        //Dump any space that has been read from the input
+                        break;
+
+            case '>':
+            case '<':
+            case '~':
+            case '&':
+            case '|':                  //If it is any valid operator
+            case '@':                  //we either immediately push it onto the operand stack
+            case '%':                  //or push higher precedence operators currently in the stack
+            case '^' :  op = input[0]; //onto the output
+                        while ((operatorStack.size() > 0) && precedence(op, operatorStack[operatorStack.size() - 1]))
+                        {
+                            // if(operatorStack.back() == ">")
+                            //     output += "=" + operatorStack.back() + " ";
+                            // else if (operatorStack.back() == "<")
+                            //     output += operatorStack.back() + "=>" + " ";
+                            output += operatorStack.back() + " ";
+                            operatorStack.pop_back();
+                        }
+                        operatorStack.push_back(op); //Insert current operator onto operator stack
+                        input.erase(0, 1);           //Remove the current operator from input
+                        break;
+            case '(' :  operatorStack.push_back("("); //Parenthesis are a "special case"
+                        input.erase(0,1);             //Push the opening onto the operand stack and wait till
+                        break;                        //a closing parentheses is found
+            case ')' :  while(operatorStack.size() > 0 && operatorStack.back() != "(")
+                        {                             //Once found, keep pushing operators onto output
+                            output += operatorStack.back() + " ";
+                            operatorStack.pop_back();  //Until we either empty the stack or find a opening paren
+                        }
+                        if(operatorStack.size() == 0)
+                            return false;
+                        else
+                            operatorStack.pop_back();
+                        input.erase(0,1);
+                        break;
+            default  :  
+                    return false;
         }
-        return true;                      //Signify a successful conversion to RPN
+        }
+    }
+    while(operatorStack.size() > 0)  //If there are any additional operators left on the stack
+    {                                //we push them onto output unless we find a mis-matched paren
+        string op = operatorStack.back();
+        if(op[0] == '(')
+            return false;
+        // if (operatorStack.back() == ">")
+        //     output += "=" + operatorStack.back() + " ";
+        // else if (operatorStack.back() == "<")
+        //     output += operatorStack.back() + "=>" + " ";
+        // else 
+        output += op + " ";
+        operatorStack.pop_back();
+    }
+    return true;                      //Signify a successful conversion to RPN
 }
  
  
@@ -178,12 +195,7 @@ void process(string rpn, int sets[])    //Process the RPN on sets
             {
                 case ' ' :  rpn.erase(0,1); //Get rid of spaces
                             break;
-                case '{' :  pos = rpn.find('}');//If curly braces, get the unnamed set
-                            set = (rpn.substr(0, pos + 1));
-                            operandStack.push_back(set); //and push it onto the operand stack
-                            rpn.erase(0, pos+1);         //Then remove it from the RPN input
-                            break;
-                case '!' :  x = operandStack.back();     //If compliment operator
+                case '~' :  x = operandStack.back();     //If compliment operator
                             operandStack.pop_back();     //Pop an operand and
                             result = setCompliment(x, output); //compliment it
                             operandStack.push_back(output); //Push the result back onto the operand stack
@@ -240,36 +252,133 @@ unsigned int setCompliment(string x, string &result)
 {
 }
 
-void printTruthTable()
+void removeSpace(string &input)
 {
-    vector<bool> binList = {true,false};
-	vector<vector<bool>> test;
-    for(int i =0; i < 4;++i)
-        test.push_back(binList);
-	vector<vector<bool> > res = cart_product(test);
-	for(size_t i = 0; i < res.size();i++){
-		for (size_t j = 0; j < res[i].size(); j++){
-			cout << ((res[i][j] == true) ? ("True") : ("False")) << "\t";
-		}
-		cout << std::endl;
-	}
+    int pos = 0;
+    while (input.find(" ") < (input.size()))
+    {
+        int pos = input.find(" ");
+        input.erase(pos, 1);
+    }
+    cout << "Input after remove space : " << input << endl;
 }
 
-void truthTableGenerator()
+// Find illegal input of implication or bi-immplication
+// Reduce the implication from "=>" to '>' if it's valid
+// Reduce the bi-implication from "<=>" to '<' if it's valid
+bool illegalImplication(string &input)
 {
-    vector<vector<bool> > cart_product (const vector<vector<bool>>& v) {
-        vector<vector<bool>> s = {{}};
-        for (auto& u : v) {
-            vector<vector<bool>> r;
-            for (auto& x : s) {
-                for (auto y : u) {
-                    r.push_back(x);
-                    r.back().push_back(y);
+    removeSpace(input); //remove space before converting
+    for(int i=0; i < input.size();++i)
+    {
+        switch (input[i])
+        {
+            //Implication
+            case '=':   
+                {                    
+                    if(input[i+1] != '>')       //invalid implication "=>" format
+                        return false;
+                    else // (input[i + 1] == '>')
+                    {
+                        if(invalidCharAfter(input[i + 2])) //found illegal char after '='
+                            return false;
+                    }
+                    input.erase(i, 1); // reduce "=>" to ">"
+                    break;
+                }            
+            //bi-implication                          
+            case '<':   
+                {
+                    if (input[i + 1] != '=') //invalid if the char after is not "="
+                        return false;
+                    else
+                    {
+                        if (input[i + 2] != '>') //invalid if the char after is not "="
+                            return false;
+                        else
+                        {
+                            if (invalidCharAfter(input[i + 3])) //found illegal char after '>'
+                                return false;
+                            else
+                                input.erase(i + 1, 2); // reduce "<=>" to "<"
+                        }
+                    }
+                    break;
                 }
-            }
-            s.swap(r);
+            case '>':   
+                {
+                    cout << "GOING TO > case" << endl;
+                    if (input[i - 1] != '=')
+                        return false; // "=" doesn't go after ">"
+                    if (invalidCharAfter(input[i + 1]))
+                        return false; //found illegal char after '>'
+                }
+            default:    break;
         }
-        return s;
-    }    
+    }
+    return true;   //if no found any invalid implication
 }
 
+
+//check if the character after => or <=> is not aletter, "(", or "~"
+bool invalidCharAfter(char inputChar)
+{
+    char illegalChar[] = ">=)<&|@%^";
+    if (strchr(illegalChar, inputChar) != NULL) 
+        return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // Find illegal input of implication or bi-immplication
+bool illegalImplication(string input)
+{
+
+    switch (input[0])
+    {
+    case '=': //Implication
+        if (input[1] == '>')
+        {
+            char illegalChar[] = ">=)<&|@%^";
+            if (strchr(illegalChar, input[2]) != NULL) //found illegal char after '='
+                return true;
+        }
+        if (input[1] == '=') // "=="
+            return true;
+    case '<': //bi-implication
+        //invalid if the char after is not "="
+        if (input[1] != '=')
+            return true;
+        else
+        {
+            if (input[2] != '>') //invalid if the char after is not "="
+                return true;
+            else
+            {
+                char illegalChar[] = ">=)<&|@%^";
+                if (strchr(illegalChar, input[1]) != NULL) //found illegal char after '>'
+                    return true;
+            }
+        }
+    case '>':
+        char illegalChar[] = ">=)<&|@%^";
+        if (strchr(illegalChar, input[1]) != NULL) //found illegal char after '>'
+            return true;
+    default:
+        break;
+    }
+}
+ */
