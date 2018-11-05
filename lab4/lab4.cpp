@@ -114,7 +114,6 @@ bool convertToRPN(string input, string &output)
                            output += parens;        //Bad input!!
                            input.erase(0,pos + 1);  //and remove it from the input
                            break;
- 
                 case '*' :                          //If it is any valid operator
                 case '\\' :                         //we either immediately push it onto the operand stack
                 case '+' :                          //or push higher precedence operators currently in the stack

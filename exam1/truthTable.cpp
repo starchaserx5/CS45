@@ -3,9 +3,11 @@
 #include <cstdlib>
 #include <string.h>
 #include <algorithm> // std::find
+#include <bitset>
 
 using namespace std;
 
+unsigned int countLetter(string input);
 bool invalidCharAfter(char inputChar) ;
 bool illegalImplication(string &input);
 void removeSpace(string &input);
@@ -330,55 +332,22 @@ bool invalidCharAfter(char inputChar)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* // Find illegal input of implication or bi-immplication
-bool illegalImplication(string input)
-{
-
-    switch (input[0])
-    {
-    case '=': //Implication
-        if (input[1] == '>')
-        {
-            char illegalChar[] = ">=)<&|@%^";
-            if (strchr(illegalChar, input[2]) != NULL) //found illegal char after '='
-                return true;
-        }
-        if (input[1] == '=') // "=="
-            return true;
-    case '<': //bi-implication
-        //invalid if the char after is not "="
-        if (input[1] != '=')
-            return true;
-        else
-        {
-            if (input[2] != '>') //invalid if the char after is not "="
-                return true;
-            else
-            {
-                char illegalChar[] = ">=)<&|@%^";
-                if (strchr(illegalChar, input[1]) != NULL) //found illegal char after '>'
-                    return true;
-            }
-        }
-    case '>':
-        char illegalChar[] = ">=)<&|@%^";
-        if (strchr(illegalChar, input[1]) != NULL) //found illegal char after '>'
-            return true;
-    default:
-        break;
-    }
-}
+/*  Count the number of letters present in the valid RPN input
+    to determine how many number of columns in the truthtable
  */
+unsigned int countLetter(string input)
+{
+    unsigned int num = 0;   // number of letters
+    bitset<26> letters = 0; // each bit represent the appearance of alphabet letter
+    for (int i = 0; i < input.size(); ++i)
+    {
+        if (input[i] >= 'A' && input[i] <= 'Z')
+        {
+            unsigned int index = input[i] - 'A'; //determine the index in bitset
+            if (!letters.test(index))
+                letters.set(index); //turn on the bit
+        }
+    }
+    cout << "The total letters appear are: " << letters.count() << endl;
+    return letters.count();
+}
