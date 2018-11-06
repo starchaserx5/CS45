@@ -23,9 +23,9 @@ bool convertToRPN(string input, string& output);
 bool getInput(string &line);
 void process(string rpn, int sets[]);
 bool unionOfTwoSets(bool x, bool y, bool& result);
-unsigned int intersectionOfTwoSets(string x, string y, string &result);
+bool intersectionOfTwoSets(bool x, bool y, bool &result);
 unsigned int differenceOfTwoSets(string x, string y, string &result);
-unsigned int setCompliment(string x, string &result);
+bool setCompliment(bool x, bool &result);
  
 int main()
 {
@@ -59,7 +59,9 @@ int whoIsFirst(const string &incoming) //Convert operator to its precedence valu
     switch(incoming[0])
     {
         //verilog https://class.ece.uw.edu/cadta/verilog/operators.html
-        case '~' : value = 8;   //NOT is the highest
+        case '(' : value = 9;   //() is the highest
+                   break;
+        case '~' : value = 8;   //NOT 
                    break;
         case '&' : value = 7;   //AND
                    break;
@@ -92,7 +94,7 @@ bool illegalSet(string input)          //See if the user entered a double comma 
             input.find("<<") < size ||
             input.find("(,") < size ||
             input.find(",)") < size ||
-            input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ()=><&|@%^") < size);
+            input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ()=><&|@%^~") < size);
 }
  
 bool precedence(const string &incoming, const string &tos) //Return TRUE is incoming operator
@@ -115,6 +117,8 @@ bool convertToRPN(string input, string &output)
     {
         if(input[0]>='A' && input[0] <= 'Z')      //Did we read the name of a set?
         {                                         //If so, move it directly to the output
+            if(input[1] == '~' || input[1] == '(') 
+                return false;                       //missing an operator to perform bitwise A&B(&D)
             operand = input[0];
             output += operand + " ";
             input.erase(0,1);                     //Remove the operand from the input
@@ -154,10 +158,10 @@ bool convertToRPN(string input, string &output)
                             output += operatorStack.back() + " ";
                             operatorStack.pop_back();  //Until we either empty the stack or find a opening paren
                         }
-                        if(operatorStack.size() == 0)
-                            return false;
+                        if(operatorStack.size() == 0)   //"(" must be exist
+                            return false;               //missing "(" or still left operators in stack
                         else
-                            operatorStack.pop_back();
+                            operatorStack.pop_back();   //pop back "("
                         input.erase(0,1);
                         break;
             default  :  
@@ -246,12 +250,12 @@ void rowEvaluate(string rpn, vector<bool>truthTable, map<string,unsigned int> in
             {
                 case ' ' :  rpn.erase(0,1); //Get rid of spaces
                             break;
-                // case '~' :  x = operandStack.back();     //If compliment operator
-                //             operandStack.pop_back();     //Pop an operand and
-                //             setCompliment(x, output); //compliment it
-                //             operandStack.push_back(output); //Push the result back onto the operand stack
-                //             rpn.erase(0,1);
-                //             break;
+                case '~' :  x = operandStack.back();     //If compliment operator
+                            operandStack.pop_back();     //Pop an operand and
+                            setCompliment(x, finalResult); //compliment it
+                            operandStack.push_back(finalResult); //Push the result back onto the operand stack
+                            rpn.erase(0,1);
+                            break;
                 case '&' :  x = operandStack.back();    //If it is Union, two operands are required                           
                             operandStack.pop_back();                    //Pop them, then perform the union
                             y = operandStack.back();
@@ -260,14 +264,14 @@ void rowEvaluate(string rpn, vector<bool>truthTable, map<string,unsigned int> in
                             operandStack.push_back(finalResult); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
-            //     case '*' :  x = operandStack.back();        //If it is Intersection, two operands are required
-            //                 operandStack.pop_back();        //Pop them, then perform the intersection
-            //                 y = operandStack.back();
-            //                 operandStack.pop_back();
-            //                 intersectionOfTwoSets(x, y, output);//The place the result onto the operand stack
-            //                 operandStack.push_back(output); //Then place the result onto the operand stack
-            //                 rpn.erase(0,1);                 //Delete from input the operand
-            //                 break;
+                case '|' :  x = operandStack.back();        //If it is Intersection, two operands are required
+                            operandStack.pop_back();        //Pop them, then perform the intersection
+                            y = operandStack.back();
+                            operandStack.pop_back();
+                            intersectionOfTwoSets(x, y, finalResult);//The place the result onto the operand stack
+                            operandStack.push_back(output); //Then place the result onto the operand stack
+                            rpn.erase(0,1);                 //Delete from input the operand
+                            break;
             //    case '\\' :  x = operandStack.back();        //If it is Set Difference, two operands are required
             //                 operandStack.pop_back();        //Pop them, then perform the set difference
             //                 y = operandStack.back();
@@ -291,9 +295,10 @@ bool unionOfTwoSets(bool x, bool y,bool& result)
     return result;
 }
  
-unsigned int intersectionOfTwoSets(bool x, bool y, bool &result)
+bool intersectionOfTwoSets(bool x, bool y, bool &result)
 {
- 
+    result = (x || y);
+    return result;
 }
  
 unsigned int differenceOfTwoSets(bool x, bool y, bool &result)
@@ -301,8 +306,10 @@ unsigned int differenceOfTwoSets(bool x, bool y, bool &result)
  
 }
  
-unsigned int setCompliment(bool x, bool &result)
+bool setCompliment(bool x, bool &result)
 {
+    result = !x;
+    return result;
 }
 
 
