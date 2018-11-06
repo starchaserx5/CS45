@@ -30,19 +30,27 @@ bool setCompliment(bool x, bool &result);               //NOT
 bool exclusiveOr(bool x, bool y, bool &result);         //XOR
 bool implication(bool x, bool y, bool &result);         // =>
 bool biImplication(bool x, bool y, bool &result);       // <=>
+bool commandInput(string &input, vector<vector<string>> &totalExpression);
+bool checkValid(string input, string &error);
 
 int main()
 {
     string line, output;            //Create input (line) and output (output) variables for functions to use
     int sets[26];                   //Create a 26 element array of sets
+    vector<vector<string>> totalExpression;
     while(getInput(line))           //As long as there is input from the keyboard
     {        
-        if (convertToRPN(line, output)) //See if we can convert infix to postfix notation
-            process(output, sets); //process(output,sets); //If we can, process the input
-        else //If not, tell the user that there was bad input
-            cout << "Illegal expression!!!" << endl;
-        //     cout<<"The expression after reducing: " << line << endl;
-        //      cout << "--------------" <<endl;    
+        // if (convertToRPN(line, output)) //See if we can convert infix to postfix notation
+        //     process(output, sets); //process(output,sets); //If we can, process the input
+        // else //If not, tell the user that there was bad input
+        //     cout << "Illegal expression!!!" << endl;
+        if(commandInput(line,totalExpression))
+        {
+            string rpn = totalExpression[0][1];
+            process(rpn,sets);
+        }
+        else cout << "Illgeal expression!!!" << endl;
+
     }
     return 0;
 }
@@ -434,7 +442,7 @@ bool illegalImplication(string &input)
                 }
             case '>':   
                 {
-                    cout << "GOING TO > case" << endl;
+                    // cout << "GOING TO > case" << endl;
                     if (input[i - 1] != '=')
                         return false; // "=" doesn't go after ">"
                     if (invalidCharAfter(input[i + 1]))
@@ -535,4 +543,67 @@ map<string, unsigned int> mapLetterToColumn(bitset<26> setLetters)
     // for (it = letterMap.begin(); it != letterMap.end(); ++it)
     //     cout << it->first << " => " << it->second << '\n';
     return letterMap;
+}
+
+
+/*  Create a set of COMMANDs to determine which action need to pass
+    when the user enter a command.
+ */
+
+bool commandInput(string &input,vector<vector<string>>& totalExpression)
+{ 
+    unsigned int pos = -1;  //pos of command
+    if(!checkValid)
+    {
+        cout << "Command is ambiguous." << endl;
+        return false;
+    }
+    //NEW Command
+    if((pos = input.find("NEW")) < input.size())
+    {
+        string expression = input.substr(pos+3);    //get expression after the command
+        string rpn = "";
+        if(convertToRPN(expression,rpn))
+        {
+            //add a vector include an original express and RPN expression
+            //1 row and 2 column
+            vector<string> originExp;
+            originExp.push_back(expression);
+            originExp.push_back(rpn);
+            totalExpression.push_back(originExp);
+            cout << "EXPRESSION "<<totalExpression.size()<<" entered." <<endl;
+        }
+        else 
+            return false;   //illegal expression
+    }
+    return true;
+}
+
+/* Check to see if the command is valid */
+bool checkValid(string input,string& error)
+{
+    // unsigned int pos = -1;
+    // if((pos = input.find("NEW")) < input.size())        
+    // {
+    //     //check if after NEW is a space character
+    //     if(input[pos+3] != ' ')
+    //     {
+    //         error = "NEW command is ambigious";
+    //         return -1;
+    //     }
+    //     else 
+    //         return 1;   //NEW command
+    // }
+
+    string command[10] = {"NEW","DELETE","IS","LIST","LOAD","EDIT","QUIT","WEXIT","WQUIT","HELP"};
+    int count = 0;  //count number of commands appear in the input
+    for (int i = 0; i < sizeof(command) / sizeof(command[0]); ++i)
+    {
+        int pos = 0;
+        if((pos = input.find(command[i])) < 0)
+            count++;
+        if(count >=2)            
+            return false;
+    }
+
 }
