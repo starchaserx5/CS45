@@ -5,10 +5,13 @@
 #include <algorithm> // std::find
 #include <bitset>
 #include <map>
+#include <math.h>
 
 using namespace std;
 
-map<char, unsigned int> mapLetterToColumn(bitset<26> setLetters);
+void rowEvaluate(string rpn, vector<bool>truthTable, map<string,unsigned int> indexCols,bool& result);
+vector<vector<bool>> genTruthTable(unsigned int num);
+map<string, unsigned int> mapLetterToColumn(bitset<26> setLetters);
 bitset<26> countLetter(string input);
 bool invalidCharAfter(char inputChar) ;
 bool illegalImplication(string &input);
@@ -19,7 +22,7 @@ bool precedence(const string &incoming, const string &tos);
 bool convertToRPN(string input, string& output);
 bool getInput(string &line);
 void process(string rpn, int sets[]);
-unsigned int unionOfTwoSets(string x, string y, string &result);
+bool unionOfTwoSets(bool x, bool y, bool& result);
 unsigned int intersectionOfTwoSets(string x, string y, string &result);
 unsigned int differenceOfTwoSets(string x, string y, string &result);
 unsigned int setCompliment(string x, string &result);
@@ -178,19 +181,63 @@ bool convertToRPN(string input, string &output)
     return true;                      //Signify a successful conversion to RPN
 }
  
- 
+/*  2-dimensional Truthtable is created based on RPN expression
+    Evaluate each row of truthtable and assign final value to the last column of each row.
+    @countLetter: Number of letters in RPN expression
+    @indexCols:   Column number correspond to a letter <letter,its column index>
+    @truthTable:  Rows = 2^numLetters, Columns = numLetters + an extra column for a result
+    @output:      The result of a row after evaluating  
+ */ 
 void process(string rpn, int sets[])    //Process the RPN on sets
 {
-    unsigned int result = 0, pos;       //Initialize result to 0 (or create a bitset to be your result holder)
-    vector<string> operandStack;        //Create an operand and operator stack
-    vector<char> operatorStack;
-    string set, x, y, output;           //Create some temporary variables
+    bitset<26> numLetters = countLetter(rpn);                               //Count number presents in RPN expression
+    map<string,unsigned int> indexCols = mapLetterToColumn(numLetters);       //Map each letter to corresponding column in truth table
+    vector<vector<bool>> truthTable = genTruthTable(numLetters.count());    //Create a truth table
     cout<<"Translated to RPN: "<<rpn<<endl;
+    unsigned int totalRows = pow(2,numLetters.count());
+    bool output = false;
+    for(int i=0; i<truthTable.size(); ++i)
+    {
+        
+        try
+        {
+            rowEvaluate(rpn,truthTable[i],indexCols,output);      //get output for each row 
+            truthTable[i].push_back(output);                      //add result to the last column 
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }               
+    }
+
+    //PRINT TRUTH TABLE
+    cout << "TRUTH TABLE Rows: "<< totalRows << " Cols: " << (numLetters.count()+1) << endl;
+    for(int i=0; i < truthTable.size(); ++i)
+    {
+        for (int j = 0; j < numLetters.count()+1; ++j)
+            cout << truthTable[i][j] << "   ";
+        cout << endl;
+    }
+    
+}
+
+/*  Evaluate RPN expression in horizontal
+ */
+void rowEvaluate(string rpn, vector<bool>truthTable, map<string,unsigned int> indexCols,bool& finalResult)    //Process the RPN on sets
+{
+    vector<bool> operandStack;        //Create an operand and operator stack
+    vector<char> operatorStack;
+    // string output,x,y;                      //Create some temporary variables
+    bool x, y, output;                  //Index column of letter need to get value
+
+
     while(rpn.size() > 0)               //As long as there are inputs available
     {
         if(rpn[0] >= 'A' && rpn[0] <= 'Z') //If a named set, push onto the operand stack
         {
-            operandStack.push_back(output = rpn[0]);
+            string letter = string(1,rpn[0]);               //convert char to string(size_t,char)
+            unsigned int index = indexCols[letter];         //get index of element need to be evaluated
+            operandStack.push_back(truthTable[index]);      //get value at index column matches the letter from RPN
             rpn.erase(0,1);
         }
         else                                //Otherwise
@@ -199,63 +246,67 @@ void process(string rpn, int sets[])    //Process the RPN on sets
             {
                 case ' ' :  rpn.erase(0,1); //Get rid of spaces
                             break;
-                case '~' :  x = operandStack.back();     //If compliment operator
-                            operandStack.pop_back();     //Pop an operand and
-                            result = setCompliment(x, output); //compliment it
-                            operandStack.push_back(output); //Push the result back onto the operand stack
-                            rpn.erase(0,1);
-                            break;
-                case '+' :  x = operandStack.back();    //If it is Union, two operands are required
-                            operandStack.pop_back();    //Pop them, then perform the union
+                // case '~' :  x = operandStack.back();     //If compliment operator
+                //             operandStack.pop_back();     //Pop an operand and
+                //             setCompliment(x, output); //compliment it
+                //             operandStack.push_back(output); //Push the result back onto the operand stack
+                //             rpn.erase(0,1);
+                //             break;
+                case '&' :  x = operandStack.back();    //If it is Union, two operands are required                           
+                            operandStack.pop_back();                    //Pop them, then perform the union
                             y = operandStack.back();
                             operandStack.pop_back();
-                            result = unionOfTwoSets(x, y, output);
-                            operandStack.push_back(output); //Then place the result onto the operand stack
+                            unionOfTwoSets(x, y,finalResult);
+                            operandStack.push_back(finalResult); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
-                case '*' :  x = operandStack.back();        //If it is Intersection, two operands are required
-                            operandStack.pop_back();        //Pop them, then perform the intersection
-                            y = operandStack.back();
-                            operandStack.pop_back();
-                            result = intersectionOfTwoSets(x, y, output);//The place the result onto the operand stack
-                            operandStack.push_back(output); //Then place the result onto the operand stack
-                            rpn.erase(0,1);                 //Delete from input the operand
-                            break;
-               case '\\' :  x = operandStack.back();        //If it is Set Difference, two operands are required
-                            operandStack.pop_back();        //Pop them, then perform the set difference
-                            y = operandStack.back();
-                            operandStack.pop_back();
-                            result = differenceOfTwoSets(y, x, output);//The place the result onto the operand stack
-                            operandStack.push_back(output); //Delete from input the operand
-                            rpn.erase(0,1);
-                            break;
+            //     case '*' :  x = operandStack.back();        //If it is Intersection, two operands are required
+            //                 operandStack.pop_back();        //Pop them, then perform the intersection
+            //                 y = operandStack.back();
+            //                 operandStack.pop_back();
+            //                 intersectionOfTwoSets(x, y, output);//The place the result onto the operand stack
+            //                 operandStack.push_back(output); //Then place the result onto the operand stack
+            //                 rpn.erase(0,1);                 //Delete from input the operand
+            //                 break;
+            //    case '\\' :  x = operandStack.back();        //If it is Set Difference, two operands are required
+            //                 operandStack.pop_back();        //Pop them, then perform the set difference
+            //                 y = operandStack.back();
+            //                 operandStack.pop_back();
+            //                 differenceOfTwoSets(y, x, output);//The place the result onto the operand stack
+            //                 operandStack.push_back(output); //Delete from input the operand
+            //                 rpn.erase(0,1);
+            //                 break;
             }
         }
     }
 }
  
+
  
 //The functions below are for you to complete. You can use bitset or ints, but you will have to
 //adjust the function above to work correctly with bitsets
-unsigned int unionOfTwoSets(string x, string y, string &result)
+bool unionOfTwoSets(bool x, bool y,bool& result)
+{
+    result = (x && y);
+    return result;
+}
+ 
+unsigned int intersectionOfTwoSets(bool x, bool y, bool &result)
 {
  
 }
  
-unsigned int intersectionOfTwoSets(string x, string y, string &result)
+unsigned int differenceOfTwoSets(bool x, bool y, bool &result)
 {
  
 }
  
-unsigned int differenceOfTwoSets(string x, string y, string &result)
-{
- 
-}
- 
-unsigned int setCompliment(string x, string &result)
+unsigned int setCompliment(bool x, bool &result)
 {
 }
 
+
+/* Remove all spaces from user's input */
 void removeSpace(string &input)
 {
     int pos = 0;
@@ -332,7 +383,38 @@ bool invalidCharAfter(char inputChar)
         return true;
 }
 
-
+/*  Created a 2-dimensional dynamic array. Take n-th index of a row and convert to bitset.
+    Convert the index number to bitset(number start 0,1,2,3... -> 2^n).
+    Map each single bit of a bitset to each array element in horizontal .
+    @num: number of letters A-Z
+    @numRows: total number of array's rows 2^n
+    @binTable: 2d-array 
+    @bitNum: binary string used to assign each element of array in a row.
+ */
+vector<vector<bool>> genTruthTable(unsigned int num)
+{
+    vector<vector<bool>> binTable = {{}};
+    int numRows = pow(2,num);
+    binTable.resize(numRows);           //get an actual size of the array
+    bitset<27> bitNum = 0;              //initalize the first number
+    for(int i=0; i < numRows;++i)
+    {
+        bitNum = i; //assign a N-th row
+        for(int j=num-1; j >=0;j--)
+        {
+            (bitNum.test(j)) ? (binTable[i].push_back(true)) : (binTable[i].push_back(false)); // push true if bitset is 1, otherwise 0
+        }
+    }
+    //print the truth table
+    // cout << "TRUTH TABLE Rows: "<< numRows << " Cols: " << num << endl;
+    // for(int i=0; i < binTable.size(); ++i)
+    // {
+    //     for (int j = 0; j < num; ++j)
+    //         cout << binTable[i][j] << " ";
+    //     cout << endl;
+    // }
+    return binTable;    
+}
 
 /*  Count the number of letters present in the valid RPN input
     to determine how many number of columns in the truthtable
@@ -362,9 +444,9 @@ bitset<26> countLetter(string input)
     @index: the index of column correspond to the letter in the RPN expression                
     @setLetters: bitset<26> represents the letters appear in RPN expression
  */
-map<char, unsigned int> mapLetterToColumn(bitset<26> setLetters)
+map<string, unsigned int> mapLetterToColumn(bitset<26> setLetters)
 {
-    map<char, unsigned int> letterMap;
+    map<string, unsigned int> letterMap;
     unsigned int index = 0;
     for (int i = 0; i < setLetters.size(); ++i)
     {
@@ -372,13 +454,13 @@ map<char, unsigned int> mapLetterToColumn(bitset<26> setLetters)
         //and value is an index of column
         if (setLetters.test(i))
         {
-            char c = char(65 + i);
-            letterMap.insert(pair<char, unsigned int>(c, index++));
+            string c = string(1,char(65 + i));
+            letterMap.insert(pair<string, unsigned int>(c, index++));
         }
     }
 
-    map<char, unsigned int>::iterator it = letterMap.begin();
-    for (it = letterMap.begin(); it != letterMap.end(); ++it)
-        cout << it->first << " => " << it->second << '\n';
+    // map<string, unsigned int>::iterator it = letterMap.begin();
+    // for (it = letterMap.begin(); it != letterMap.end(); ++it)
+    //     cout << it->first << " => " << it->second << '\n';
     return letterMap;
 }

@@ -11,7 +11,7 @@ using namespace std;
 
 vector<vector<bool>> genTruthTable(unsigned int num);
 bitset<26> countLetter(string input);
-map<char,unsigned int> mapLetterToColumn(bitset<26> setLetters);
+map<string,unsigned int> mapLetterToColumn(bitset<26> setLetters);
 
 
 vector<vector<bool>> cart_product(const vector<vector<bool>> &v)
@@ -115,23 +115,23 @@ bitset<26> countLetter(string input)
     @index: the index of column correspond to the letter in the RPN expression                
     @setLetters: bitset<26> represents the letters appear in RPN expression
  */
-map<char,unsigned int> mapLetterToColumn(bitset<26> setLetters)
+map<string, unsigned int> mapLetterToColumn(bitset<26> setLetters)
 {
-    map<char, unsigned int> letterMap;
-    unsigned int index = 0;                     
-    for(int i=0; i<setLetters.size();++i)
+    map<string, unsigned int> letterMap;
+    unsigned int index = 0;
+    for (int i = 0; i < setLetters.size(); ++i)
     {
-        //insert key is an index of ON bitset 
-        //and value is an index of column 
-        if(setLetters.test(i))
+        //insert key is an index of ON bitset
+        //and value is an index of column
+        if (setLetters.test(i))
         {
-            char c = char(65+i);
-            letterMap.insert(pair<char, unsigned int>(c,index++));        
+            string c = string(1,char(65 + i));
+            letterMap.insert(pair<string, unsigned int>(c, index++));
         }
     }
 
-    map<char, unsigned int>::iterator it = letterMap.begin();
-    for(it=letterMap.begin(); it!=letterMap.end();++it)
+    map<string, unsigned int>::iterator it = letterMap.begin();
+    for (it = letterMap.begin(); it != letterMap.end(); ++it)
         cout << it->first << " => " << it->second << '\n';
     return letterMap;
 }
