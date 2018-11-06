@@ -51,9 +51,32 @@ int main () {
     //     cout << "FOUND ILLEGAL" << endl;
 
     // vector<vector<bool>> truthTable = genTruthTable(3);    
-    string foo = "Q^A%Z^%M*L(P";
-    bitset<26> letter = countLetter(foo);
-    mapLetterToColumn(letter);
+    // string foo = "Q^A%Z^%M*L(P";
+    // bitset<26> letter = countLetter(foo);
+    // mapLetterToColumn(letter);
+
+    vector<vector<int>> foo = { 
+                                {1,2,3},
+                                {4,5,6},
+                                {7,8,9}
+                                };
+    cout << "size of foo: " << foo.size() << endl;
+    for(int i =0;i<foo.size();i++)
+    {    
+        for(int j=0;j<3;++j)
+            cout << foo[i][j] << "  " ;
+        cout << endl;
+    }
+    foo.erase(foo.begin()+0);
+    cout << "size of foo: " << foo.size() << endl;
+    for(int i =0;i<foo.size();i++)
+    {    
+        for(int j=0;j<3;++j)
+            cout << foo[i][j] << "  " ;
+        cout << endl;
+    }
+
+    cout <<foo[2][2]<<endl;
     return 0;
 }
 
