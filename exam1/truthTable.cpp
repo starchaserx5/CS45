@@ -22,11 +22,15 @@ bool precedence(const string &incoming, const string &tos);
 bool convertToRPN(string input, string& output);
 bool getInput(string &line);
 void process(string rpn, int sets[]);
-bool unionOfTwoSets(bool x, bool y, bool& result);
-bool intersectionOfTwoSets(bool x, bool y, bool &result);
-unsigned int differenceOfTwoSets(string x, string y, string &result);
-bool setCompliment(bool x, bool &result);
- 
+bool conjunctionTwoSets(bool x, bool y, bool& result);  //AND
+bool disjunctionTwoSets(bool x, bool y, bool &result);  //OR
+bool notConjunction(bool x, bool y, bool &result);      //NAND
+bool notDisjunction(bool x, bool y, bool &result);      //NOR
+bool setCompliment(bool x, bool &result);               //NOT
+bool exclusiveOr(bool x, bool y, bool &result);         //XOR
+bool implication(bool x, bool y, bool &result);         // =>
+bool biImplication(bool x, bool y, bool &result);       // <=>
+
 int main()
 {
     string line, output;            //Create input (line) and output (output) variables for functions to use
@@ -232,7 +236,7 @@ void rowEvaluate(string rpn, vector<bool>truthTable, map<string,unsigned int> in
     vector<bool> operandStack;        //Create an operand and operator stack
     vector<char> operatorStack;
     // string output,x,y;                      //Create some temporary variables
-    bool x, y, output;                  //Index column of letter need to get value
+    bool first, second, output;                  //Index column of letter need to get value
 
 
     while(rpn.size() > 0)               //As long as there are inputs available
@@ -250,36 +254,68 @@ void rowEvaluate(string rpn, vector<bool>truthTable, map<string,unsigned int> in
             {
                 case ' ' :  rpn.erase(0,1); //Get rid of spaces
                             break;
-                case '~' :  x = operandStack.back();     //If compliment operator
+                case '~' :  first = operandStack.back();     //If compliment operator
                             operandStack.pop_back();     //Pop an operand and
-                            setCompliment(x, finalResult); //compliment it
+                            setCompliment(first, finalResult); //compliment it
                             operandStack.push_back(finalResult); //Push the result back onto the operand stack
                             rpn.erase(0,1);
                             break;
-                case '&' :  x = operandStack.back();    //If it is Union, two operands are required                           
-                            operandStack.pop_back();                    //Pop them, then perform the union
-                            y = operandStack.back();
+                case '&' :  second = operandStack.back();    //If it is AND, two operands are required                           
+                            operandStack.pop_back();    //Pop them, then perform the union
+                            first = operandStack.back();
                             operandStack.pop_back();
-                            unionOfTwoSets(x, y,finalResult);
+                            conjunctionTwoSets(first, second,finalResult);
                             operandStack.push_back(finalResult); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
-                case '|' :  x = operandStack.back();        //If it is Intersection, two operands are required
+                case '|' :  second = operandStack.back();        //If it is OR, two operands are required
                             operandStack.pop_back();        //Pop them, then perform the intersection
-                            y = operandStack.back();
+                            first = operandStack.back();
                             operandStack.pop_back();
-                            intersectionOfTwoSets(x, y, finalResult);//The place the result onto the operand stack
-                            operandStack.push_back(output); //Then place the result onto the operand stack
+                            disjunctionTwoSets(first, second, finalResult);//The place the result onto the operand stack
+                            operandStack.push_back(finalResult); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
-            //    case '\\' :  x = operandStack.back();        //If it is Set Difference, two operands are required
-            //                 operandStack.pop_back();        //Pop them, then perform the set difference
-            //                 y = operandStack.back();
-            //                 operandStack.pop_back();
-            //                 differenceOfTwoSets(y, x, output);//The place the result onto the operand stack
-            //                 operandStack.push_back(output); //Delete from input the operand
-            //                 rpn.erase(0,1);
-            //                 break;
+                case '@' :  second = operandStack.back();        //If it is NAND, two operands are required
+                            operandStack.pop_back();        //Pop them, then perform the NAND
+                            first = operandStack.back();
+                            operandStack.pop_back();
+                            notConjunction(first, second, finalResult);//The place the result onto the operand stack
+                            operandStack.push_back(finalResult); //Delete from input the operand
+                            rpn.erase(0,1);
+                            break;
+                case '%':   second = operandStack.back();        //If it is NOR, two operands are required
+                            operandStack.pop_back();        //Pop them, then perform the NOR
+                            first = operandStack.back();
+                            operandStack.pop_back();
+                            notDisjunction(first, second, finalResult);   //The place the result onto the operand stack
+                            operandStack.push_back(finalResult); //Delete from input the operand
+                            rpn.erase(0, 1);
+                            break;
+                case '^':   second = operandStack.back();        //If it is XOR, two operands are required
+                            operandStack.pop_back();        //Pop them, then perform the XOR
+                            first = operandStack.back();
+                            operandStack.pop_back();
+                            exclusiveOr(first, second, finalResult);      //The place the result onto the operand stack
+                            operandStack.push_back(finalResult); //Delete from input the operand
+                            rpn.erase(0, 1);
+                            break;
+                case '>':   second = operandStack.back();            //If it is implication, two operands are required
+                            operandStack.pop_back();            //Pop them, then perform the implication
+                            first = operandStack.back();
+                            operandStack.pop_back();
+                            implication(first, second, finalResult);      //The place the result onto the operand stack
+                            operandStack.push_back(finalResult); //Delete from input the operand
+                            rpn.erase(0, 1);
+                            break;
+                case '<':   second = operandStack.back();            //If it is Bi-implication, two operands are required
+                            operandStack.pop_back();                //Pop them, then perform the bi-implication
+                            first = operandStack.back();
+                            operandStack.pop_back();
+                            biImplication(first, second, finalResult);      //The place the result onto the operand stack
+                            operandStack.push_back(finalResult); //Delete from input the operand
+                            rpn.erase(0, 1);
+                            break;
             }
         }
     }
@@ -289,26 +325,55 @@ void rowEvaluate(string rpn, vector<bool>truthTable, map<string,unsigned int> in
  
 //The functions below are for you to complete. You can use bitset or ints, but you will have to
 //adjust the function above to work correctly with bitsets
-bool unionOfTwoSets(bool x, bool y,bool& result)
+bool conjunctionTwoSets(bool x, bool y,bool& result)
 {
-    result = (x && y);
+    result = (x && y);      //AND
     return result;
 }
  
-bool intersectionOfTwoSets(bool x, bool y, bool &result)
+bool disjunctionTwoSets(bool x, bool y, bool &result)
 {
-    result = (x || y);
+    result = (x || y);      //OR
     return result;
 }
  
-unsigned int differenceOfTwoSets(bool x, bool y, bool &result)
+bool notConjunction(bool x, bool y, bool &result)
 {
- 
+    result = !(x && y);     //NAND
+    return result;
 }
- 
+
+bool notDisjunction(bool x, bool y, bool &result)
+{
+    result = !(x || y);     //NOR
+    return result;
+}
+
+bool exclusiveOr(bool x, bool y, bool &result)
+{
+    result = (x ^ y);     //NOR
+    return result;
+}
+
+bool implication(bool x, bool y, bool &result)
+{
+    ((x == true) && (y == false)) ? (result=false) : (result=true);  //only false if left false, right true
+    // if(x == true && y == false)          
+    //     result = false;
+    // else 
+    //     result = true;
+    return result;
+}
+
+bool biImplication(bool x, bool y, bool &result)
+{
+    (x == y) ? (result=true) : (result=false);    
+    return result;
+}
+
 bool setCompliment(bool x, bool &result)
 {
-    result = !x;
+    result = !x;        //NOT
     return result;
 }
 
