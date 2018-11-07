@@ -60,23 +60,7 @@ int main () {
                                 {4,5,6},
                                 {7,8,9}
                                 };
-    cout << "size of foo: " << foo.size() << endl;
-    for(int i =0;i<foo.size();i++)
-    {    
-        for(int j=0;j<3;++j)
-            cout << foo[i][j] << "  " ;
-        cout << endl;
-    }
-    foo.erase(foo.begin()+0);
-    cout << "size of foo: " << foo.size() << endl;
-    for(int i =0;i<foo.size();i++)
-    {    
-        for(int j=0;j<3;++j)
-            cout << foo[i][j] << "  " ;
-        cout << endl;
-    }
-
-    cout <<foo[2][2]<<endl;
+    cout << "size of foo[0]: " << foo[0].size() << endl;
     return 0;
 }
 

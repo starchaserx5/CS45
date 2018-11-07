@@ -583,6 +583,11 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
         return tableCommand(input,pos,totalExpression);
     }
 
+    //IS COMMAND compare two expressions
+    if((pos=input.find("IS")) < input.size())
+    {
+        return compareExpression(totalExpression,pos,input);
+    }
 
     return true;    //command valid
 }
@@ -703,8 +708,7 @@ bool tableCommand(string input,unsigned int pos,vector<vector<string>>& totalExp
         catch(const std::exception& e)
         {
             std::cerr << e.what() << '\n';
-        }
-        
+        }        
     }
     else
     {
@@ -713,8 +717,6 @@ bool tableCommand(string input,unsigned int pos,vector<vector<string>>& totalExp
     }
     return false;//invalid input
 }
-
-
 
 void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,string originExp)
 {
@@ -743,5 +745,53 @@ void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,stri
             cout << setw(5);
         }
         cout << endl;
+    }
+}
+
+/*  Compare two expressions after evaluating each of them
+    Only if two expressions have same number of letters.
+ */
+bool compareExpression(vector<vector<string>> totalExpression,unsigned int pos, string input)
+{
+    string compareExp = input.substr(pos+2);        //get comparison expressions
+    if((input.find_first_not_of("0123456789= ")) < input.size())
+    {
+        cout << "Invalid Comparison."<<endl;
+        return false;       //invalid input
+    }
+    else
+    {
+        int count = 0;
+        for(int i=0;i<compareExp.size();++i)
+        {
+            if(compareExp == "=") count++;
+            if(count > 1) 
+            {
+                cout << "Comparison is ambiguos." <<endl;
+                return false;
+            }
+        }
+    }
+    unsigned int equalPos = input.find("=");    //find position "="
+    unsigned int first = stoi(input.substr(pos+2,equalPos-pos-3));
+    unsigned int second = stoi(input.substr(equalPos+1));
+    //first or second is out of range of expression number
+    if(first > totalExpression.size() || second > totalExpression.size())
+    {
+        cout << "The expression number is out of range" << endl;
+        return false;
+    }
+    else if(totalExpression[first].size() != totalExpression[second].size())
+    {
+        cout << "The number letters in two expressions are not equal." << endl;
+        return false;
+    }
+    //compare two expressions
+    for(int i=0;i<totalExpression[first].size();++i)
+    {
+        if(totalExpression[first][i] != totalExpression[second][i])
+        {
+            cout << 
+        }
     }
 }

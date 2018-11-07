@@ -6,6 +6,7 @@
 #include <bitset>
 #include <map>
 #include <math.h>
+#include <iomanip>      // std::setw
 
 using namespace std;
 
@@ -21,7 +22,7 @@ int whoIsFirst(const string &incoming);
 bool precedence(const string &incoming, const string &tos);
 bool convertToRPN(string input, string& output);
 bool getInput(string &line);
-void process(string rpn, int sets[]);
+void process(string rpn, string originExp);
 bool conjunctionTwoSets(bool x, bool y, bool& result);  //AND
 bool disjunctionTwoSets(bool x, bool y, bool &result);  //OR
 bool notConjunction(bool x, bool y, bool &result);      //NAND
@@ -32,6 +33,10 @@ bool implication(bool x, bool y, bool &result);         // =>
 bool biImplication(bool x, bool y, bool &result);       // <=>
 bool commandInput(string &input, vector<vector<string>> &totalExpression);
 bool checkCommandValid(string input);
+bool newCommand(string input, unsigned int pos,vector<vector<string>>& totalExpression);
+bool deleteCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression);
+bool tableCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression);
+void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,string originExp);
 
 int main()
 {
@@ -40,17 +45,18 @@ int main()
     vector<vector<string>> totalExpression; //Storage of all input expression and RPN
     while(getInput(line))                   //As long as there is input from the keyboard
     {        
-        if (convertToRPN(line, output)) //See if we can convert infix to postfix notation
-            process(output, sets); //process(output,sets); //If we can, process the input
-        else //If not, tell the user that there was bad input
+        // if (convertToRPN(line, output)) //See if we can convert infix to postfix notation
+        //     process(output, sets); //process(output,sets); //If we can, process the input
+        // else //If not, tell the user that there was bad input
+        //     cout << "Illegal expression!!!" << endl;
+        if(commandInput(line,totalExpression))
+        {
+            // string rpn = totalExpression[0][1];
+            // process(rpn,sets);
+        }
+        else 
             cout << "Illegal expression!!!" << endl;
-        // if(commandInput(line,totalExpression))
-        // {
-        //     // string rpn = totalExpression[0][1];
-        //     // process(rpn,sets);
-        // }
-        // else cout << "Illegal expression!!!" << endl;
-        // cout <<"--------------"<<endl;
+        cout <<"--------------"<<endl;
     }
     return 0;
 }
@@ -204,7 +210,7 @@ bool convertToRPN(string input, string &output)
     @truthTable:  Rows = 2^numLetters, Columns = numLetters + an extra column for a result
     @output:      The result of a row after evaluating  
  */ 
-void process(string rpn, int sets[])    //Process the RPN on sets
+void process(string rpn,string originExp)    //Process the RPN on sets
 {
     bitset<26> numLetters = countLetter(rpn);                               //Count number presents in RPN expression
     map<string,unsigned int> indexCols = mapLetterToColumn(numLetters);       //Map each letter to corresponding column in truth table
@@ -227,13 +233,14 @@ void process(string rpn, int sets[])    //Process the RPN on sets
     }
 
     //PRINT TRUTH TABLE
-    cout << "TRUTH TABLE Rows: "<< totalRows << " Cols: " << (numLetters.count()+1) << endl;
-    for(int i=0; i < truthTable.size(); ++i)
-    {
-        for (int j = 0; j < numLetters.count()+1; ++j)
-            cout << truthTable[i][j] << "   ";
-        cout << endl;
-    }
+    printTruthTable(truthTable,numLetters,originExp);
+    // cout << "TRUTH TABLE Rows: "<< totalRows << " Cols: " << (numLetters.count()+1) << endl;
+    // for(int i=0; i < truthTable.size(); ++i)
+    // {
+    //     for (int j = 0; j < numLetters.count()+1; ++j)
+    //         cout << truthTable[i][j] << "   ";
+    //     cout << endl;
+    // }
     
 }
 
@@ -561,46 +568,19 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
     //NEW COMMAND
     if((pos = input.find("NEW")) < input.size())
     {
-        string originExp = input.substr(pos+3);    //get originExp after the command
-        string rpn = "";
-        if(convertToRPN(originExp,rpn))
-        {
-            //add a vector include an original express and RPN originExp
-            //1 row and 2 column
-            vector<string> expression;
-            expression.push_back(originExp);
-            expression.push_back(rpn);
-            totalExpression.push_back(expression);
-            cout << "EXPRESSION "<<totalExpression.size()<<" entered." <<endl;
-        }
-        else 
-            return false;   //illegal expression
+        return newCommand(input,pos,totalExpression);       //return false if invalid expression
     }
 
     //DELETE COMMAND
     if((pos=input.find("DELETE")) < input.size())
     {
-        unsigned int checkNum = 0;
-        string indexExp = input.substr(pos+6);      //get index of expression need to be deleted
-        removeSpace(indexExp);  
-        if(totalExpression.empty())
-        {
-            cout<< "There doesn't have any expression to delete." << endl;
-            return true;
-        }
-        if((indexExp.find_first_not_of("0123456789 ")) < indexExp.size())
-        {
-            cout << "The index expression is not number. " << endl;
-            return false;
-        }
-        else
-        {
-            unsigned int index = stoi(indexExp);
-            totalExpression[index-1].erase(totalExpression[index-1].begin(),totalExpression[index-1].end());
-            cout << "DELETED "<< index;
-            cout << ". Size after deleting " << totalExpression.size() << endl;
-            return true;    //Delete fulfil
-        }
+        return deleteCommand(input,pos,totalExpression);
+    }
+
+    //TABLE COMMAND print out truth table
+    if((pos=input.find("TABLE")) < input.size())
+    {
+        return tableCommand(input,pos,totalExpression);
     }
 
 
@@ -634,4 +614,133 @@ bool checkCommandValid(string input)
             return false;
     }
     return true;
+}
+
+
+bool newCommand(string input, unsigned int pos,vector<vector<string>>& totalExpression)
+{
+    string originExp = input.substr(pos+3);    //get originExp after the command
+    string rpn = "";
+    if(convertToRPN(originExp,rpn))
+    {
+        //add a vector include an original express and RPN originExp
+        //1 row and 2 column
+        vector<string> expression;
+        expression.push_back(originExp);
+        expression.push_back(rpn);
+        totalExpression.push_back(expression);
+        cout << "EXPRESSION "<<totalExpression.size()<<" entered." <<endl;
+        return true;
+    }
+    else 
+        return false;   //illegal expression
+}
+
+bool deleteCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression)
+{
+    unsigned int checkNum = 0;
+    string indexExp = input.substr(pos+6);      //get index of expression need to be deleted
+    removeSpace(indexExp);  
+    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789 ")) > indexExp.size()))
+    {
+        cout<< "There doesn't have any expression to delete." << endl;
+        return true;
+    }
+    if((indexExp.find_first_not_of("0123456789 ")) < indexExp.size())
+    {
+        cout << "The index expression is invalid." << endl;
+        return false;
+    }
+    else if(totalExpression.size()>0 && stoi(indexExp) <= totalExpression.size())
+    {
+        
+        try
+        {
+            unsigned int index = stoi(indexExp);
+            totalExpression.erase(totalExpression.begin()+index-1);     //first index-0
+            cout << "DELETED "<< index;
+            cout << ". Size after deleting " << totalExpression.size() << endl;
+            return true;    //Delete fulfil
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        
+    }
+    else
+    {
+        cout << "The number of expressions is less than index." << endl;
+        return true;
+    }
+    return false;//invalid input
+}
+
+bool tableCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression)
+{
+    unsigned int checkNum = 0;
+    string indexExp = input.substr(pos+5);      //get index of expression need to be deleted
+    removeSpace(indexExp);
+    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789 ")) > indexExp.size()))
+    {
+        cout<< "There doesn't have any expression to print." << endl;
+        return true;
+    }
+    if((indexExp.find_first_not_of("0123456789 ")) < indexExp.size())
+    {
+        cout << "The index expression is invalid." << endl;
+        return false;
+    }
+    else if(totalExpression.size()>0 && stoi(indexExp) <= totalExpression.size())
+    {
+        
+        try
+        {
+            unsigned int index = stoi(indexExp);                                    //get index of truth table
+            process(totalExpression[index-1][1],totalExpression[index-1][0]);         //print out truth table with rpn exp
+            return true;    //Delete fulfil
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }        
+    }
+    else
+    {
+        cout << "The number of expressions is less than index." << endl;
+        return true;
+    }
+    return false;//invalid input
+}
+
+
+
+void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,string originExp)
+{
+    unsigned int columns = numLetters.count()+1;    //plus result column
+    removeSpace(originExp);
+    cout << "TRUTH TABLE -- Rows: "<< truthTable.size() << "-- Cols: " << columns << endl;
+    //Print out signature
+    cout <<setw(5);
+    for(int i=0;i < numLetters.size();++i)
+    {
+        if(numLetters.test(i))
+        {   
+            cout<<char(65+i);
+            cout << setw(5);
+        }
+    }
+    cout << setw(3+originExp.size());
+    cout << originExp << endl;
+    //print out TruthTable
+    cout << setw(5);
+    for(int i=0; i < truthTable.size(); ++i)
+    {
+        for (int j = 0; j < columns; ++j)
+        {
+            cout << truthTable[i][j] ;
+            cout << setw(5);
+        }
+        cout << endl;
+    }
 }
