@@ -55,12 +55,24 @@ int main () {
     // bitset<26> letter = countLetter(foo);
     // mapLetterToColumn(letter);
 
-    vector<vector<int>> foo = { 
+    vector<vector<int>> foo1 = { 
                                 {1,2,3},
                                 {4,5,6},
                                 {7,8,9}
                                 };
-    cout << "size of foo[0]: " << foo[0].size() << endl;
+    vector<vector<int>> foo2 = { 
+                                {1,2,3},
+                                {4,5,6},
+                                {7,8,9}
+                                };
+    int c1 = foo1.size()-1;
+    int c2 = foo2.size()-1;
+    for(int i=0;i<foo1.size();++i)
+    {
+        if(foo1[i][c1] == foo2[i][c2])
+            cout << "They are equivalent." <<endl;
+    }
+
     return 0;
 }
 
