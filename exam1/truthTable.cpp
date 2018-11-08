@@ -7,6 +7,7 @@
 #include <map>
 #include <math.h>
 #include <iomanip> // std::setw
+#include <fstream>
 
 using namespace std;
 
@@ -36,6 +37,7 @@ bool checkCommandValid(string input);
 bool newCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression);
 bool deleteCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression);
 bool tableCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression);
+bool listCommand(vector<vector<string>> totalExpression,string input);
 void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters, string originExp);
 bool compareExpression(string input, unsigned int pos, vector<vector<string>> totalExpression);
 unsigned int commandAppear(string input, string command);
@@ -521,7 +523,7 @@ bitset<26> countLetter(string input)
                 letters.set(index); //turn on the bit
         }
     }
-    cout << "The total letters appear are: " << letters.count() << endl;
+    // cout << "The total letters appear are: " << letters.count() << endl;
     return letters;
 }
 
@@ -564,7 +566,7 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
     unsigned int pos = -1;  //pos of command
     if(!checkCommandValid(input))
     {
-        cout << "Command is ambiguous." << endl;
+        // cout << "Command is ambiguous." << endl;
         return false;
     }
     //NEW COMMAND
@@ -586,7 +588,7 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
     }
 
     //IS COMMAND compare two expressions
-    if((pos=input.find("IS")) < input.size())
+    if((pos=input.find("IS")) < input.size() && (pos=input.find("LIST")) > input.size())
     {
         return compareExpression(input, pos, totalExpression);
     }
@@ -595,6 +597,13 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
     {
         cout << "Size of vector expressions: " << totalExpression.size() << endl;
     }
+
+    //LIST COMMAND 
+    if((pos=input.find("LIST")) < input.size())
+    {
+        return listCommand(totalExpression,input);
+    }
+
     return true;    //command valid
 }
 
@@ -603,17 +612,18 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
 */
 bool checkCommandValid(string input)
 {
-    string command[11] = {"SIZE","NEW","DELETE","IS","LIST","LOAD","EDIT","QUIT","WEXIT","WQUIT","HELP"};
+    string command[12] = {"SIZE","NEW","DELETE","LIST","IS","LOAD","EDIT","QUIT","WEXIT","WQUIT","HELP","TABLE"};
     int count = 0;  //count number of commands appear in the input
     int pos = 0;    //position of first occurence of the sequence
     for (int i = 0; i < sizeof(command) / sizeof(command[0]); ++i)
     {
-        //times a command appears
+        //number of times a command appears
         if(commandAppear(input,command[i]) >= 2)
         {
             cout << "Command is ambiguous." << endl;
             return false;
         }        
+
         if((pos = input.find(command[i])) < input.size())
             count++;
         if(count >=2)
@@ -636,10 +646,11 @@ unsigned int commandAppear(string input,string command)
 {
     int count = 0;
     int pos = 0;
+    
     while ((pos = input.find(command, pos)) < input.size())
     {
-        input = input.substr(pos + 3);
-        count++;
+        input = input.substr(pos + command.size());
+        ++count;
         if(count>=2)
             return count;
     }
@@ -671,12 +682,12 @@ bool deleteCommand(string input,unsigned int pos,vector<vector<string>>& totalEx
     unsigned int checkNum = 0;
     string indexExp = input.substr(pos+6);      //get index of expression need to be deleted
     removeSpace(indexExp);  
-    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789 ")) > indexExp.size()))
+    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789")) > indexExp.size()))
     {
         cout<< "There doesn't have any expression to delete." << endl;
         return true;
     }
-    if((indexExp.find_first_not_of("0123456789 ")) < indexExp.size())
+    if((indexExp.find_first_not_of("0123456789")) < indexExp.size())
     {
         cout << "The index expression is invalid." << endl;
         return false;
@@ -710,12 +721,12 @@ bool tableCommand(string input,unsigned int pos,vector<vector<string>>& totalExp
     unsigned int checkNum = 0;
     string indexExp = input.substr(pos+5);      //get expression need to be deleted
     removeSpace(indexExp);
-    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789 ")) > indexExp.size()))
+    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789")) > indexExp.size()))
     {
         cout<< "There doesn't have any expression to print." << endl;
         return true;
     }
-    if((indexExp.find_first_not_of("0123456789 ")) < indexExp.size())
+    if((indexExp.find_first_not_of("0123456789")) < indexExp.size())
     {
         cout << "The index expression is invalid." << endl;
         return false;
@@ -765,7 +776,9 @@ void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,stri
     {
         for (int j = 0; j < columns; ++j)
         {
-            cout << truthTable[i][j] ;
+            char binChar;
+            (truthTable[i][j] == true) ?(binChar = 'T'):(binChar='F');
+            cout << binChar;
             cout << setw(5);
         }
         cout << endl;
@@ -777,66 +790,133 @@ void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,stri
  */
 bool compareExpression(string input, unsigned int pos, vector<vector<string>> totalExpression)
 {
-    string compareExp = input.substr(pos+2);        //get comparison expressions
+    string compareExp = input.substr(pos+2);    //get comparison expressions
+    unsigned int equalPos ;                     //find position "="
+    unsigned int first = 0;                        //left expression number 
+    unsigned int second = 0;                       //right expression number
+    vector<vector<bool>> leftTable ;            //left truth table
+    vector<vector<bool>> rightTable;            //right truth table    
+    unsigned int c1 = 0;       //indexs of last columns from two tables to evaluate
+    unsigned int c2 = 0;
     removeSpace(compareExp);
-    // if ((compareExp.find_first_not_of("0123456789= ")) < input.size())
-    // {
-    //     cout << "Invalid Comparison."<<endl;
-    //     return false;       //invalid input
-    // }
-    // //check empty storage of expression
-    if (totalExpression.size())
+    //check empty storage of expression
+    if (totalExpression.empty() && (compareExp.find_first_not_of("0123456789= ")) > input.size())
     {
         cout << "There is no any expression to evaluate." << endl;
         return false;
     }
-    // else
-    // {
-    //     int count = 0;
-    //     for(int i=0;i<compareExp.size();++i)
-    //     {
-    //         if(compareExp == "=") count++;
-    //         if(count > 1) 
-    //         {
-    //             cout << "Comparison is ambiguous." <<endl;
-    //             return false;
-    //         }
-    //     }
-    // }
-    unsigned int equalPos = input.find("=");    //find position "="
-    unsigned int first = stoi(input.substr(pos+2,equalPos-pos-2));
-    unsigned int second = stoi(input.substr(equalPos+1));
-    //get two TruthTables
-    vector<vector<bool>> leftTable = process(totalExpression[first-1][1],totalExpression[first-1][0],"print");
-    vector<vector<bool>> rightTable = process(totalExpression[second-1][1], totalExpression[second-1][0], "print");
-    //get indexs of last columns from two tables to evaluate
-    unsigned int c1 = leftTable.size()-1;
-    unsigned int c2 = rightTable.size()-1;
-    cout << "The first expression is: " << first << endl;
-    cout << "The second expression is: " << second << endl;
+    else if ((compareExp.find_first_not_of("0123456789= ")) < input.size() )
+    {
+        cout << "Invalid Comparison."<<endl;
+        return false;       //invalid input
+    }
+    else
+    {
+        //check invalid 
+        int count = 0;
+        int equalPos = 0;
+        for(int i=0;i<compareExp.size();++i)
+        {
+            if(compareExp[i] == '=') count++;
+            if(count > 1) 
+            {
+                cout << "Comparison is ambiguous." <<endl;
+                return false;
+            }
+        }
+    }
 
-
+    //if the command is valid
+    if(totalExpression.size()>0)
+    {
+        equalPos = input.find("=");    //find position "="
+        first = stoi(input.substr(pos+2,equalPos-pos-2));
+        second = stoi(input.substr(equalPos+1));        
+    }
     //first or second is out of range of expression number
     if(first > totalExpression.size() || second > totalExpression.size())
     {
         cout << "The expression number is out of range" << endl;
         return false;
     }
-    else if(totalExpression[first-1].size() != totalExpression[second-1].size())
+    else
+    {
+        //get truth tables
+        leftTable = process(totalExpression[first-1][1],totalExpression[first-1][0],"print");
+        rightTable = process(totalExpression[second-1][1], totalExpression[second-1][0], "print");
+    }
+    
+    if(leftTable.size() != rightTable.size())
     {
         cout << "The number letters in two expressions are not equal." << endl;
         return false;
     }
-    //compare two expressions
-    for(int i=0;i<totalExpression[first].size();++i)
+    else
     {
-        if(totalExpression[first-1][c1] != totalExpression[second-1][c2])
+        //get indexs of last columns from two tables to evaluate
+        c1 = leftTable[0].size()-1;
+        c2 = rightTable[0].size()-1;
+        //compare two expressions
+        for(int i=0;i<leftTable.size();++i)
         {
-            cout << "The expression " << first << " is not equivalent to " << second << endl;
-            return false;
+            if(leftTable[i][c1] != rightTable[i][c2])
+            {
+                cout << "The expression " << first << " is not equivalent to " << second << endl;
+                return false;
+            }
+        }
+        // two expressions are the same
+        cout << "The expression " << first << " is equivalent to " << second << endl;
+        return true;
+    }
+    
+}
+
+
+//print list of expressions
+bool listCommand(vector<vector<string>> totalExpression,string input)
+{
+    cout << "GOING LIST COMMAND"<<endl;
+    int pos = 0;                           //get LIST index in the input string  
+    removeSpace(input);
+    pos = input.find("LIST");
+    string getList = input.substr(pos);    
+    //no other parameter after or before LIST
+    if(getList != "LIST" && getList.size() != 4)
+    {
+        cout<<"Command LIST is ambiguous."<<endl;
+        return false;
+    }
+    else if(totalExpression.empty())
+    {
+        cout<<"The list is empty." << endl;
+        return false;
+    }
+    else
+    {
+        for(int i=0;i<totalExpression.size();++i)
+        {
+            string originExp = totalExpression[i][0];
+            removeSpace(originExp);
+            cout<<"Expression "<<i+1<<" : "<<originExp<<endl;
         }
     }
-    // two expressions are the same
-    cout << "The expression " << first << " is equivalent to " << second << endl;
-    return true;
+    return true;    //command valid
+}
+
+
+//check if file name exist or not
+bool storeHelper(string fileName)
+{
+    if(ifstream(fileName))
+    {
+        string ans = "";
+        cout << "File already exists" <<endl;
+        cout << "Do you want to erase or change another filename (Y/N): ";
+        getline(cin,ans);
+        while (ans == 'N')
+        {
+            cout << "Do you want to erase or change another filename (Y/N): ";
+        }
+    }
 }

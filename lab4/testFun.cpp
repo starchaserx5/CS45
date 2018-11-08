@@ -56,23 +56,30 @@ int main () {
     // mapLetterToColumn(letter);
 
     vector<vector<int>> foo1 = { 
-                                {1,2,3},
-                                {4,5,6},
-                                {7,8,9}
+                                {1,2,3,1},
+                                {4,5,6,2},
+                                {7,8,9,5},
+                                {9,5,4,6},
                                 };
     vector<vector<int>> foo2 = { 
-                                {1,2,3},
-                                {4,5,6},
-                                {7,8,9}
+                                {1,2,3,2},
+                                {4,5,6,5},
+                                {7,8,0,1},
+                                {9,5,4,4},
                                 };
-    int c1 = foo1.size()-1;
-    int c2 = foo2.size()-1;
-    for(int i=0;i<foo1.size();++i)
-    {
-        if(foo1[i][c1] == foo2[i][c2])
-            cout << "They are equivalent." <<endl;
-    }
+    string temp[1] = {"LISTIS"};
+    int list = 0;
+    int is = 0;
 
+    for(int i=0;i<1;++i)
+    {
+        if(temp[i] == "IS")
+            is++;
+        
+        if(temp[i] == "LIST")
+            list++;
+    }
+    cout << "LIST : " << list << " IS: " << is << endl;
     return 0;
 }
 
