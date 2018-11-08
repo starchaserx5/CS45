@@ -41,6 +41,13 @@ bool listCommand(vector<vector<string>> totalExpression,string input);
 void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters, string originExp);
 bool compareExpression(string input, unsigned int pos, vector<vector<string>> totalExpression);
 unsigned int commandAppear(string input, string command);
+void storeHelper(string fileName, vector<vector<string>> totalExpression);
+bool storeCommand(vector<vector<string>> totalExpression,unsigned int pos,string input);
+bool checkFileName(string fileName);
+bool checkExtension(string fileName) ;
+void loadHelper(string fileName, vector<vector<string>> totalExpression);
+bool loadCommand(vector<vector<string>> totalExpression, unsigned int pos, string input) ;
+bool editCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression);
 
 int main()
 {
@@ -124,6 +131,7 @@ bool precedence(const string &incoming, const string &tos) //Return TRUE is inco
  
 bool convertToRPN(string input, string &output)
 {
+    cout << "GOING TO ConvertRPN" <<endl;
     //reduce '=>' or '<=>' to '>' or '<'
     //check invalid operator & % ^ 
     if(illegalSet(input) || !illegalImplication(input))             
@@ -581,6 +589,12 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
         return deleteCommand(input,pos,totalExpression);
     }
 
+    //EDIT COMMAND
+    if ((pos = input.find("EDIT")) < input.size())
+    {
+        return editCommand(input, pos, totalExpression);
+    }
+
     //TABLE COMMAND print out truth table
     if((pos=input.find("TABLE")) < input.size())
     {
@@ -604,6 +618,18 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
         return listCommand(totalExpression,input);
     }
 
+    //STORE COMMAND
+    if ((pos = input.find("STORE")) < input.size())
+    {
+        return storeCommand(totalExpression,pos,input);
+    }
+
+    //LOAD COMMAND
+    if ((pos = input.find("LOAD")) < input.size())
+    {
+        return loadCommand(totalExpression, pos, input);
+    }
+
     return true;    //command valid
 }
 
@@ -612,7 +638,7 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
 */
 bool checkCommandValid(string input)
 {
-    string command[12] = {"SIZE","NEW","DELETE","LIST","IS","LOAD","EDIT","QUIT","WEXIT","WQUIT","HELP","TABLE"};
+    string command[13] = {"SIZE","NEW","DELETE","LIST","IS","LOAD","EDIT","QUIT","WEXIT","WQUIT","HELP","TABLE","STORE"};
     int count = 0;  //count number of commands appear in the input
     int pos = 0;    //position of first occurence of the sequence
     for (int i = 0; i < sizeof(command) / sizeof(command[0]); ++i)
@@ -679,7 +705,6 @@ bool newCommand(string input, unsigned int pos,vector<vector<string>>& totalExpr
 
 bool deleteCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression)
 {
-    unsigned int checkNum = 0;
     string indexExp = input.substr(pos+6);      //get index of expression need to be deleted
     removeSpace(indexExp);  
     if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789")) > indexExp.size()))
@@ -904,19 +929,214 @@ bool listCommand(vector<vector<string>> totalExpression,string input)
     return true;    //command valid
 }
 
-
-//check if file name exist or not
-bool storeHelper(string fileName)
+//store all expressions if file doesn't exist
+//otherwise rename or remove that file
+bool storeCommand(vector<vector<string>> totalExpression,unsigned int pos,string input)
 {
-    if(ifstream(fileName))
+    string fileName = input.substr(pos+5); //get fileName
+    if(totalExpression.empty())
     {
-        string ans = "";
-        cout << "File already exists" <<endl;
-        cout << "Do you want to erase or change another filename (Y/N): ";
-        getline(cin,ans);
-        while (ans == 'N')
+        cout << "The list of expressions is empty." << endl;
+        return true;
+    }
+    storeHelper(fileName,totalExpression);
+    return true;
+}
+
+
+//LOAD command
+bool loadCommand(vector<vector<string>> totalExpression,unsigned int pos,string input)
+{
+    string fileName = input.substr(pos + 4); //get fileName
+    loadHelper(fileName, totalExpression);
+    return true;
+}
+
+//Create a new file with ".truth" extensions
+//if file already exists, overwrite it or give another file name
+//return true if checkFileName
+void storeHelper(string fileName, vector<vector<string>> totalExpression)
+{
+    string ans = "";
+    removeSpace(fileName);
+    //add extension to file if missing
+    //if exist lowercase extensions
+    if(!checkExtension(fileName))
+        fileName = fileName + ".truth";
+    
+    else
+    {
+        int pos = fileName.find(".TRUTH");
+        if(pos < fileName.size())
         {
-            cout << "Do you want to erase or change another filename (Y/N): ";
+            for(int i=pos;i<fileName.size();++i)
+                fileName[i] = tolower(fileName[i]);
         }
     }
+    
+    //if fileName exists
+    if(checkFileName(fileName))
+    {
+        cout << "File already exists" << endl;
+        //erase file
+        cout << "Would you like to erase the file(Y/N): ";
+        getline(cin,ans);
+        transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
+        if(ans == "Y" || ans == "YES")
+        {
+            remove(fileName.c_str());                                   //remove the file
+            cout << "File is removed succesfully." << endl;
+        }
+        else
+        {
+            cout << "Would you like to rename the file(Y/N): ";
+            getline(cin, ans);
+            transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
+            if (ans == "Y" || ans == "YES")
+            {
+                cout << "Enter new file name: " << endl;
+                getline(cin, ans);
+                removeSpace(ans);
+                //check extension missing
+                if(!checkExtension(ans))
+                {
+                    transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
+                    ans = ans + ".truth";
+                }                
+                else
+                {
+                    transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
+                    int pos = ans.find(".TRUTH");
+                    if (pos < ans.size())
+                    {
+                        for (int i = pos; i < ans.size(); ++i)
+                            ans[i] = tolower(ans[i]);
+                    }
+                }
+                                
+                rename(fileName.c_str(), ans.c_str());
+                cout << "File successfully renamed." << endl;
+            }
+        }
+    }
+    else
+    {
+        ofstream myFile;
+        myFile.open(fileName,ios::app); //append to the expression to the end
+        for(int i=0;i<totalExpression.size();++i)
+        {
+            myFile << (totalExpression[i][0]) << endl;
+        }
+        myFile.close(); //close the file
+    } 
+}
+
+void loadHelper(string fileName, vector<vector<string>> totalExpression)
+{
+    string ans = "";
+    removeSpace(fileName);
+    //add extension to file if missing
+    //if exist lowercase extensions
+    if(!checkExtension(fileName))
+        fileName = fileName + ".truth";
+    else
+    {
+        int pos = fileName.find(".TRUTH");
+        if (pos < fileName.size())
+        {
+            for (int i = pos; i < fileName.size(); ++i)
+                fileName[i] = tolower(fileName[i]);
+        }
+    }
+    //check file exist
+    if(!checkFileName(fileName))
+        cout << "The file name doesn't exist." << endl;
+    else if(fileName.size() == 0)
+        cout << "Missing file name." <<endl;
+    else
+    {
+        string line;
+        ifstream opFile(fileName);
+        if (opFile.is_open())
+        {
+            while (getline(opFile, line))
+            {
+                cout << line << "\n";
+            }
+            opFile.close();
+        }
+        else
+            cout << "Unable to open file" << endl;
+    }
+}
+
+
+
+
+//check if File Name already exist 
+//return true if exists ; otherwise false
+bool checkFileName(string fileName)
+{
+    ifstream file(fileName);
+    return (bool)file; 
+}
+
+
+//if extension is missing return false
+//otherwise return true 
+bool checkExtension(string fileName)
+{
+    for (unsigned int i = 0; i < fileName.size(); ++i) //standardize set names to uppercase
+        fileName[i] = toupper(fileName[i]);
+    int pos = fileName.find(".TRUTH");
+    if(pos > fileName.size())
+        return false;
+    return true;
+}
+
+
+bool editCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression)
+{
+    string indexExp = input.substr(pos + 4); //get index of expression need to be deleted
+    removeSpace(indexExp);
+    if (totalExpression.empty() && ((indexExp.find_first_not_of("0123456789")) > indexExp.size()))
+    {
+        cout << "There doesn't have any expression to delete." << endl;
+        return true;
+    }
+    if ((indexExp.find_first_not_of("0123456789")) < indexExp.size())
+    {
+        cout << "The index expression is invalid." << endl;
+        return true;
+    }
+    else if (totalExpression.size() > 0 && stoi(indexExp) <= totalExpression.size())
+    {
+        unsigned int index = stoi(indexExp);
+        string answer = "";
+        string output = "";
+        cout << "Please enter new expression: " ;
+        getline(cin,answer);
+        // output = "";
+        cout << "Answer is: " << answer << endl;
+        while(!convertToRPN(answer,output))
+        {
+            cout << "Output is: " << output << endl;
+            cout << "Invalid expression. Please enter again: ";
+            getline(cin, answer);
+        }
+        //clear old RPN and old expression
+        totalExpression[index][0] = "";
+        totalExpression[index][1] = "";
+        //insert new RPN and new expression
+        totalExpression[index][0] += answer;
+        totalExpression[index][1] += output;
+        cout << "Expression "<<index<<" has updated." <<endl;
+        return true;
+    }
+    else
+    {
+        cout << "The number of expressions is less than index." << endl;
+        return true;
+    }
+    return false; //invalid input
 }
