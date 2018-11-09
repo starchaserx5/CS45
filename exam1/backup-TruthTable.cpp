@@ -7,6 +7,8 @@
 #include <map>
 #include <math.h>
 #include <iomanip> // std::setw
+#include <fstream>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -31,33 +33,48 @@ bool setCompliment(bool x, bool &result);              //NOT
 bool exclusiveOr(bool x, bool y, bool &result);        //XOR
 bool implication(bool x, bool y, bool &result);        // =>
 bool biImplication(bool x, bool y, bool &result);      // <=>
-bool commandInput(string &input, vector<vector<string>> &totalExpression);
 bool checkCommandValid(string input);
-bool newCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression);
-bool deleteCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression);
+bool newCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression,bool& hasSaved);
+bool deleteCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression,bool& hasSaved);
 bool tableCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression);
+bool listCommand(vector<vector<string>> totalExpression,string input);
 void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters, string originExp);
 bool compareExpression(string input, unsigned int pos, vector<vector<string>> totalExpression);
 unsigned int commandAppear(string input, string command);
+void storeHelper(string fileName, vector<vector<string>> totalExpression,bool& hasSaved);
+bool storeCommand(vector<vector<string>> totalExpression,unsigned int pos,string input,bool& hasSaved);
+bool checkFileName(string fileName);
+bool checkExtension(string fileName) ;
+void loadHelper(string fileName, vector<vector<string>> totalExpression);
+void exitHelper(string fileName, vector<vector<string>> totalExpression,bool& hasSaved);
+bool loadCommand(vector<vector<string>> totalExpression, unsigned int pos, string input) ;
+bool editCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression);
+void exitCommand(vector<vector<string>> totalExpression,unsigned int pos,string input,bool& hasSaved);
+void wExitCommand(vector<vector<string>> totalExpression);
+bool commandMatching(string input,string commandName,unsigned int size);
+bool commandHelper(string input,unsigned int& index);
+bool commandInput(string &input, vector<vector<string>> &totalExpression,bool& hasSaved);
+
 
 int main()
 {
     string line, output;                    //Create input (line) and output (output) variables for functions to use
     int sets[26];                           //Create a 26 element array of sets
     vector<vector<string>> totalExpression; //Storage of all input expression and RPN
+    bool hasSaved = false;
     while(getInput(line))                   //As long as there is input from the keyboard
     {        
         // if (convertToRPN(line, output)) //See if we can convert infix to postfix notation
         //     process(output, sets); //process(output,sets); //If we can, process the input
         // else //If not, tell the user that there was bad input
         //     cout << "Illegal expression!!!" << endl;
-        if(commandInput(line,totalExpression))
+        if(commandInput(line,totalExpression,hasSaved))
         {
             // string rpn = totalExpression[0][1];
             // process(rpn,sets);
         }
         else 
-            cout << "Illegal expression!!!" << endl;
+            cout << "Invalid command!!!. Please type HELP for instructions" << endl;
         cout <<"--------------"<<endl;
     }
     return 0;
@@ -521,7 +538,7 @@ bitset<26> countLetter(string input)
                 letters.set(index); //turn on the bit
         }
     }
-    cout << "The total letters appear are: " << letters.count() << endl;
+    // cout << "The total letters appear are: " << letters.count() << endl;
     return letters;
 }
 
@@ -559,24 +576,34 @@ map<string, unsigned int> mapLetterToColumn(bitset<26> setLetters)
     when the user enter a command.
  */
 
-bool commandInput(string &input,vector<vector<string>>& totalExpression)
+bool commandInput(string &input,vector<vector<string>>& totalExpression,bool& hasSaved)
 { 
     unsigned int pos = -1;  //pos of command
-    if(!checkCommandValid(input))
-    {
-        cout << "Command is ambiguous." << endl;
+    // if(!checkCommandValid(input))
+    // {
+    //     // cout << "Command is ambiguous." << endl;
+    //     return false;
+    // }
+    unsigned int index = -1;
+    if(!commandHelper(input,index))
         return false;
-    }
+
     //NEW COMMAND
     if((pos = input.find("NEW")) < input.size())
     {
-        return newCommand(input,pos,totalExpression);       //return false if invalid expression
+        return newCommand(input,pos,totalExpression,hasSaved);       //return false if invalid expression
     }
 
     //DELETE COMMAND
     if((pos=input.find("DELETE")) < input.size())
     {
-        return deleteCommand(input,pos,totalExpression);
+        return deleteCommand(input,pos,totalExpression,hasSaved);
+    }
+
+    //EDIT COMMAND
+    if ((pos = input.find("EDIT")) < input.size())
+    {
+        return editCommand(input, pos, totalExpression);
     }
 
     //TABLE COMMAND print out truth table
@@ -586,7 +613,7 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
     }
 
     //IS COMMAND compare two expressions
-    if((pos=input.find("IS")) < input.size())
+    if((pos=input.find("IS")) < input.size() && (pos=input.find("LIST")) > input.size())
     {
         return compareExpression(input, pos, totalExpression);
     }
@@ -594,6 +621,36 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
     if((pos=input.find("SIZE")) < input.size())
     {
         cout << "Size of vector expressions: " << totalExpression.size() << endl;
+    }
+
+    //LIST COMMAND 
+    if((pos=input.find("LIST")) < input.size())
+    {
+        return listCommand(totalExpression,input);
+    }
+
+    //STORE COMMAND
+    if ((pos = input.find("STORE")) < input.size())
+    {
+        return storeCommand(totalExpression,pos,input,hasSaved);
+    }
+
+    //LOAD COMMAND
+    if ((pos = input.find("LOAD")) < input.size())
+    {
+        return loadCommand(totalExpression, pos, input);
+    }
+
+    //EXIT - QUIT COMMAND
+    // if ((pos = input.find("QUIT")) < input.size() || (pos = input.find("EXIT")) < input.size())
+    // {
+    //     exitCommand(totalExpression,pos,input,hasSaved);
+    // }
+
+    //WEXIT - WQUIT COMMAND
+    if ((pos = input.find("WQUIT")) < input.size() || (pos = input.find("WEXIT")) < input.size())
+    {
+        wExitCommand(totalExpression);
     }
     return true;    //command valid
 }
@@ -603,17 +660,18 @@ bool commandInput(string &input,vector<vector<string>>& totalExpression)
 */
 bool checkCommandValid(string input)
 {
-    string command[11] = {"SIZE","NEW","DELETE","IS","LIST","LOAD","EDIT","QUIT","WEXIT","WQUIT","HELP"};
+    string command[14] = {"SIZE","NEW","DELETE","LIST","IS","LOAD","EDIT","QUIT","EXIT","WEXIT","WQUIT","HELP","TABLE","STORE"};
     int count = 0;  //count number of commands appear in the input
     int pos = 0;    //position of first occurence of the sequence
     for (int i = 0; i < sizeof(command) / sizeof(command[0]); ++i)
     {
-        //times a command appears
+        //number of times a command appears
         if(commandAppear(input,command[i]) >= 2)
         {
             cout << "Command is ambiguous." << endl;
             return false;
         }        
+
         if((pos = input.find(command[i])) < input.size())
             count++;
         if(count >=2)
@@ -636,10 +694,11 @@ unsigned int commandAppear(string input,string command)
 {
     int count = 0;
     int pos = 0;
+    
     while ((pos = input.find(command, pos)) < input.size())
     {
         input = input.substr(pos + command.size());
-        count++;
+        ++count;
         if(count>=2)
             return count;
     }
@@ -647,7 +706,7 @@ unsigned int commandAppear(string input,string command)
 }
 
 
-bool newCommand(string input, unsigned int pos,vector<vector<string>>& totalExpression)
+bool newCommand(string input, unsigned int pos,vector<vector<string>>& totalExpression,bool& hasSaved)
 {
     string originExp = input.substr(pos+3);    //get originExp after the command
     string rpn = "";
@@ -660,23 +719,24 @@ bool newCommand(string input, unsigned int pos,vector<vector<string>>& totalExpr
         expression.push_back(rpn);
         totalExpression.push_back(expression);
         cout << "EXPRESSION "<<totalExpression.size()<<" entered." <<endl;
+        //turn SAVE flag on to detect EXIT
+        (hasSaved == true) ? (hasSaved == false) : hasSaved;
         return true;
     }
     else 
         return false;   //illegal expression
 }
 
-bool deleteCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression)
+bool deleteCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression,bool& hasSaved)
 {
-    unsigned int checkNum = 0;
     string indexExp = input.substr(pos+6);      //get index of expression need to be deleted
     removeSpace(indexExp);  
-    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789 ")) > indexExp.size()))
+    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789")) > indexExp.size()))
     {
         cout<< "There doesn't have any expression to delete." << endl;
         return true;
     }
-    if((indexExp.find_first_not_of("0123456789 ")) < indexExp.size())
+    if((indexExp.find_first_not_of("0123456789")) < indexExp.size())
     {
         cout << "The index expression is invalid." << endl;
         return false;
@@ -690,6 +750,7 @@ bool deleteCommand(string input,unsigned int pos,vector<vector<string>>& totalEx
             totalExpression.erase(totalExpression.begin()+index-1);     //first index-0
             cout << "DELETED "<< index;
             cout << ". Size after deleting " << totalExpression.size() << endl;
+            (hasSaved == true) ? (hasSaved == false) : hasSaved;
             return true;    //Delete fulfil
         }
         catch(const std::exception& e)
@@ -710,12 +771,12 @@ bool tableCommand(string input,unsigned int pos,vector<vector<string>>& totalExp
     unsigned int checkNum = 0;
     string indexExp = input.substr(pos+5);      //get expression need to be deleted
     removeSpace(indexExp);
-    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789 ")) > indexExp.size()))
+    if(totalExpression.empty() && ((indexExp.find_first_not_of("0123456789")) > indexExp.size()))
     {
         cout<< "There doesn't have any expression to print." << endl;
         return true;
     }
-    if((indexExp.find_first_not_of("0123456789 ")) < indexExp.size())
+    if((indexExp.find_first_not_of("0123456789")) < indexExp.size())
     {
         cout << "The index expression is invalid." << endl;
         return false;
@@ -765,7 +826,9 @@ void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,stri
     {
         for (int j = 0; j < columns; ++j)
         {
-            cout << truthTable[i][j] ;
+            char binChar;
+            (truthTable[i][j] == true) ?(binChar = 'T'):(binChar='F');
+            cout << binChar;
             cout << setw(5);
         }
         cout << endl;
@@ -777,15 +840,22 @@ void printTruthTable(vector<vector<bool>> truthTable, bitset<26> numLetters,stri
  */
 bool compareExpression(string input, unsigned int pos, vector<vector<string>> totalExpression)
 {
-    string compareExp = input.substr(pos+2);        //get comparison expressions
+    string compareExp = input.substr(pos+2);    //get comparison expressions
+    unsigned int equalPos ;                     //find position "="
+    unsigned int first = 0;                        //left expression number 
+    unsigned int second = 0;                       //right expression number
+    vector<vector<bool>> leftTable ;            //left truth table
+    vector<vector<bool>> rightTable;            //right truth table    
+    unsigned int c1 = 0;       //indexs of last columns from two tables to evaluate
+    unsigned int c2 = 0;
     removeSpace(compareExp);
     //check empty storage of expression
-    if (totalExpression.empty())
+    if (totalExpression.empty() && (compareExp.find_first_not_of("0123456789= ")) > input.size())
     {
         cout << "There is no any expression to evaluate." << endl;
         return false;
     }
-    else if ((compareExp.find_first_not_of("0123456789= ")) < input.size() && !totalExpression.empty())
+    else if ((compareExp.find_first_not_of("0123456789= ")) < input.size() )
     {
         cout << "Invalid Comparison."<<endl;
         return false;       //invalid input
@@ -797,7 +867,7 @@ bool compareExpression(string input, unsigned int pos, vector<vector<string>> to
         int equalPos = 0;
         for(int i=0;i<compareExp.size();++i)
         {
-            if(compareExp == "=") count++;
+            if(compareExp[i] == '=') count++;
             if(count > 1) 
             {
                 cout << "Comparison is ambiguous." <<endl;
@@ -806,47 +876,497 @@ bool compareExpression(string input, unsigned int pos, vector<vector<string>> to
         }
     }
 
-    unsigned int equalPos = input.find("=");    //find position "="
-    unsigned int first = stoi(input.substr(pos+2,equalPos-pos-2));
-    unsigned int second = stoi(input.substr(equalPos+1));
-    //get two TruthTables
-    vector<vector<bool>> leftTable ;
-    vector<vector<bool>> rightTable;
-
+    //if the command is valid
     if(totalExpression.size()>0)
     {
-        leftTable = process(totalExpression[first-1][1],totalExpression[first-1][0],"print");
-        rightTable = process(totalExpression[second-1][1], totalExpression[second-1][0], "print");
+        equalPos = input.find("=");    //find position "="
+        first = stoi(input.substr(pos+2,equalPos-pos-2));
+        second = stoi(input.substr(equalPos+1));        
     }
-
-    //get indexs of last columns from two tables to evaluate
-    unsigned int c1 = leftTable.size()-1;
-    unsigned int c2 = rightTable.size()-1;
-    cout << "The first expression is: " << first << endl;
-    cout << "The second expression is: " << second << endl;
-
-
     //first or second is out of range of expression number
     if(first > totalExpression.size() || second > totalExpression.size())
     {
         cout << "The expression number is out of range" << endl;
         return false;
     }
-    else if(totalExpression[first-1].size() != totalExpression[second-1].size())
+    else
+    {
+        //get truth tables
+        leftTable = process(totalExpression[first-1][1],totalExpression[first-1][0],"print");
+        rightTable = process(totalExpression[second-1][1], totalExpression[second-1][0], "print");
+    }
+    
+    if(leftTable.size() != rightTable.size())
     {
         cout << "The number letters in two expressions are not equal." << endl;
         return false;
     }
-    //compare two expressions
-    for(int i=0;i<totalExpression[first].size();++i)
+    else
     {
-        if(totalExpression[first-1][c1] != totalExpression[second-1][c2])
+        //get indexs of last columns from two tables to evaluate
+        c1 = leftTable[0].size()-1;
+        c2 = rightTable[0].size()-1;
+        //compare two expressions
+        for(int i=0;i<leftTable.size();++i)
         {
-            cout << "The expression " << first << " is not equivalent to " << second << endl;
-            return false;
+            if(leftTable[i][c1] != rightTable[i][c2])
+            {
+                cout << "The expression " << first << " is not equivalent to " << second << endl;
+                return false;
+            }
+        }
+        // two expressions are the same
+        cout << "The expression " << first << " is equivalent to " << second << endl;
+        return true;
+    }
+    
+}
+
+
+//print list of expressions
+bool listCommand(vector<vector<string>> totalExpression,string input)
+{
+    cout << "GOING LIST COMMAND"<<endl;
+    int pos = 0;                           //get LIST index in the input string  
+    removeSpace(input);
+    pos = input.find("LIST");
+    string getList = input.substr(pos);    
+    //no other parameter after or before LIST
+    if(getList != "LIST" && getList.size() != 4)
+    {
+        cout<<"Command LIST is ambiguous."<<endl;
+        return false;
+    }
+    else if(totalExpression.empty())
+    {
+        cout<<"The list is empty." << endl;
+        return false;
+    }
+    else
+    {
+        for(int i=0;i<totalExpression.size();++i)
+        {
+            string originExp = totalExpression[i][0];
+            removeSpace(originExp);
+            cout<<"Expression "<<i+1<<" : "<<originExp<<endl;
         }
     }
-    // two expressions are the same
-    cout << "The expression " << first << " is equivalent to " << second << endl;
+    return true;    //command valid
+}
+
+//store all expressions if file doesn't exist
+//otherwise rename or remove that file
+bool storeCommand(vector<vector<string>> totalExpression,unsigned int pos,string input,bool& hasSaved)
+{
+    string fileName = input.substr(pos+5); //get fileName
+    if(totalExpression.empty())
+    {
+        cout << "The list of expressions is empty." << endl;
+        return true;
+    }
+    storeHelper(fileName,totalExpression,hasSaved);
     return true;
 }
+
+
+//LOAD command
+bool loadCommand(vector<vector<string>> totalExpression,unsigned int pos,string input)
+{
+    string fileName = input.substr(pos + 4); //get fileName
+    loadHelper(fileName, totalExpression);
+    return true;
+}
+
+//Create a new file with ".truth" extensions
+//if file already exists, overwrite it or give another file name
+//return true if checkFileName
+void storeHelper(string fileName, vector<vector<string>> totalExpression,bool& hasSaved)
+{
+    string ans = "";
+    removeSpace(fileName);
+    //add extension to file if missing
+    //if exist lowercase extensions
+    if(!checkExtension(fileName))
+        fileName = fileName + ".truth";
+    
+    else
+    {
+        int pos = fileName.find(".TRUTH");
+        if(pos < fileName.size())
+        {
+            for(int i=pos;i<fileName.size();++i)
+                fileName[i] = tolower(fileName[i]);
+        }
+    }
+    
+    //if fileName exists
+    if(checkFileName(fileName))
+    {
+        cout << "File already exists" << endl;
+        //erase file
+        cout << "Would you like to erase the file(Y/N): ";
+        getline(cin,ans);
+        transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
+        if(ans == "Y" || ans == "YES")
+        {
+            remove(fileName.c_str());                                   //remove the file
+            cout << "File is removed succesfully." << endl;
+        }
+        else
+        {
+            cout << "Would you like to rename the file(Y/N): ";
+            getline(cin, ans);
+            transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
+            if (ans == "Y" || ans == "YES")
+            {
+                cout << "Enter new file name: " << endl;
+                getline(cin, ans);
+                removeSpace(ans);
+                //check extension missing
+                if(!checkExtension(ans))
+                {
+                    transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
+                    ans = ans + ".truth";
+                }                
+                else
+                {
+                    transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
+                    int pos = ans.find(".TRUTH");
+                    if (pos < ans.size())
+                    {
+                        for (int i = pos; i < ans.size(); ++i)
+                            ans[i] = tolower(ans[i]);
+                    }
+                }                                
+                rename(fileName.c_str(), ans.c_str());
+                cout << "File successfully renamed." << endl;
+            }
+        }
+    }
+    else
+    {
+        ofstream myFile;
+        myFile.open(fileName,ios::app); //append to the expression to the end
+        for(int i=0;i<totalExpression.size();++i)
+        {
+            myFile << (totalExpression[i][0]) << endl;
+        }
+        hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
+        myFile.close(); //close the file
+    } 
+}
+
+void loadHelper(string fileName, vector<vector<string>> totalExpression)
+{
+    string ans = "";
+    removeSpace(fileName);
+    //add extension to file if missing
+    //if exist lowercase extensions
+    if(!checkExtension(fileName))
+        fileName = fileName + ".truth";
+    else
+    {
+        int pos = fileName.find(".TRUTH");
+        if (pos < fileName.size())
+        {
+            for (int i = pos; i < fileName.size(); ++i)
+                fileName[i] = tolower(fileName[i]);
+        }
+    }
+    //check file exist
+    if(!checkFileName(fileName))
+        cout << "The file name doesn't exist." << endl;
+    else if(fileName.size() == 0)
+        cout << "Missing file name." <<endl;
+    else
+    {
+        string line;
+        ifstream opFile(fileName);
+        if (opFile.is_open())
+        {
+            while (getline(opFile, line))
+            {
+                cout << line << "\n";
+            }
+            opFile.close();
+        }
+        else
+            cout << "Unable to open file" << endl;
+    }
+}
+
+
+
+
+//check if File Name already exist 
+//return true if exists ; otherwise false
+bool checkFileName(string fileName)
+{
+    ifstream file(fileName);
+    return (bool)file; 
+}
+
+
+//if extension is missing return false
+//otherwise return true 
+bool checkExtension(string fileName)
+{
+    for (unsigned int i = 0; i < fileName.size(); ++i) //standardize set names to uppercase
+        fileName[i] = toupper(fileName[i]);
+    int pos = fileName.find(".TRUTH");
+    if(pos > fileName.size())
+        return false;
+    return true;
+}
+
+
+bool editCommand(string input, unsigned int pos, vector<vector<string>> &totalExpression)
+{
+    string indexExp = input.substr(pos + 4); //get index of expression need to be deleted
+    removeSpace(indexExp);
+    if (totalExpression.empty() && ((indexExp.find_first_not_of("0123456789")) > indexExp.size()))
+    {
+        cout << "There doesn't have any expression to delete." << endl;
+        return true;
+    }
+    if ((indexExp.find_first_not_of("0123456789")) < indexExp.size())
+    {
+        cout << "The index expression is invalid." << endl;
+        return true;
+    }
+    else if (totalExpression.size() > 0 && stoi(indexExp) <= totalExpression.size())
+    {
+        unsigned int index = stoi(indexExp);
+        string answer = "";
+        string output = "";
+        cout << "Please enter new expression: " ;
+        getline(cin,answer);
+        transform(answer.begin(),answer.end(),answer.begin(),::toupper);    //convert to upper case
+        while(!convertToRPN(answer,output))
+        {
+            cout << "Invalid expression. Please enter again: ";
+            getline(cin, answer);
+            transform(answer.begin(),answer.end(),answer.begin(),::toupper);
+        }
+        //clear old RPN and old expression
+        totalExpression[index-1][0] = "";
+        totalExpression[index-1][1] = "";
+        //insert new RPN and new expression
+        totalExpression[index-1][0] += answer;
+        totalExpression[index-1][1] += output;
+        cout << "Expression "<<index<<" has updated." <<endl;
+        return true;
+    }
+    else
+    {
+        cout << "The number of expressions is less than index." << endl;
+        return true;
+    }
+    return false; //invalid input
+}
+
+void exitCommand(vector<vector<string>> totalExpression,unsigned int pos,string input,bool& hasSaved)
+{
+    string ans = "";
+    
+    //ask you to save before exit
+    if(!hasSaved && !totalExpression.empty())
+    {
+        cout << "Would you like to save your changes(Y/N): "; 
+        getline(cin,ans);
+        transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
+        if(ans == "Y" || ans == "YES")
+        {
+            string fileName = "";
+            cout << "Please enter your file name: ";
+            getline(cin,fileName);
+            transform(fileName.begin(), fileName.end(), fileName.begin(), ::toupper);
+            //call store to check
+            exitHelper(fileName,totalExpression,hasSaved);
+        }
+    }
+    else
+        exit(0);    //totalExpression is empty
+    exit(0);//close program
+}
+
+//if file already exists, overwrite it
+//else save new file
+void exitHelper(string fileName, vector<vector<string>> totalExpression,bool& hasSaved)
+{
+    string ans = "";
+    removeSpace(fileName);
+    //add extension to file if missing
+    //if exist lowercase extensions
+    if(!checkExtension(fileName))
+        fileName = fileName + ".truth";
+    
+    else
+    {
+        int pos = fileName.find(".TRUTH");
+        if(pos < fileName.size())
+        {
+            for(int i=pos;i<fileName.size();++i)
+                fileName[i] = tolower(fileName[i]);
+        }
+    }
+    
+    //if fileName exists
+    if(checkFileName(fileName))
+    {
+        cout << "File already exists" << endl;
+        //erase file
+        cout << "Would you like to overwrite the file(Y/N): ";
+        getline(cin,ans);
+        transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
+        if(ans == "Y" || ans == "YES")
+        {
+            ofstream newFile(fileName, ios::trunc);  //open file and overwrite
+            if(newFile.is_open())
+            {
+                 for(int i=0;i<totalExpression.size();++i)
+                    newFile << (totalExpression[i][0]) << endl;
+            }
+            else
+                cout << "Failed to overwrite." << endl;
+        }
+    }
+    else
+    {
+        ofstream myFile;
+        myFile.open(fileName,ios::app); //append to the expression to the end
+        for(int i=0;i<totalExpression.size();++i)
+        {
+            myFile << (totalExpression[i][0]) << endl;
+        }
+        hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
+        myFile.close(); //close the file
+    } 
+}
+
+//write a file and exit
+void wExitCommand(vector<vector<string>> totalExpression)
+{
+    string fileName = "UNTITLED.truth";
+    //check file exits
+    if(!checkFileName(fileName))
+    {
+        ofstream myFile;
+        myFile.open(fileName,ios::app); //append to the expression to the end
+        for(int i=0;i<totalExpression.size();++i)
+            myFile << (totalExpression[i][0]) << endl;
+        myFile.close(); //close the file
+    }
+    else
+    {
+        unsigned int hashNum = (rand()%100)+99;
+        string newFile = "UNTITLED"+to_string(hashNum)+".truth";
+        while(checkFileName(newFile))                  //create new file name 
+        {
+            hashNum = (rand()%100)+99;
+            newFile = "UNTITLED"+to_string(hashNum)+".truth";
+        }
+        ofstream myFile;
+        myFile.open(newFile,ios::app); //append to the expression to the end
+        for(int i=0;i<totalExpression.size();++i)
+            myFile << (totalExpression[i][0]) << endl;
+        myFile.close(); //close the file
+    }
+    exit(0);    //close program
+}
+
+//compare user's command input to default command
+//return true if matching
+bool commandMatching(string input,string commandName,unsigned int size)
+{
+    return (input.substr(0,size) == commandName);
+}
+
+// "SIZE","NEW","DELETE","LIST","LOAD","IS","QUIT","EDIT","EXIT","WEXIT","WQUIT","HELP","TABLE","STORE"
+bool commandHelper(string input,unsigned int& index)
+{
+    while(input.size()>0)
+    {
+        switch(input[0])
+        {
+            case ' ' :  input.erase(0,1);
+                        break;
+            case 'N' :  if(commandMatching(input,"NEW",3))
+                        {
+                            index = 0;          //NEW
+                            return true;                           
+                        }
+                        else return false;
+            case 'D' :  if(commandMatching(input,"DELETE",6))
+                        {
+                            index = 1;          //DELETE
+                            return true;                           
+                        }
+                        else return false;
+            case 'L' :  if(commandMatching(input,"LIST",4))
+                        {
+                            index = 2;          //LIST
+                            return true;                           
+                        }
+                        else if(commandMatching(input,"LOAD",4))
+                        {
+                            index = 3;          //LOAD
+                            return true;                           
+                        }
+                        return false;           //invalid command
+            case 'I' :  if(commandMatching(input,"IS",2))
+                        {
+                            index = 4;          //IS
+                            return true;                           
+                        }
+                        else return false;
+            case 'Q' :  if(commandMatching(input,"QUIT",4))
+                        {
+                            index = 5;          //QUIT
+                            return true;                           
+                        }
+                        else return false;                        
+            case 'E' :  if(commandMatching(input,"EDIT",4))
+                        {
+                            index = 6;          //EDIT
+                            return true;                           
+                        }
+                        else if(commandMatching(input,"EXIT",4))
+                        {
+                            index = 5;          //EXIT
+                            return true;                           
+                        }
+                        return false;
+            case 'W' :  if(commandMatching(input,"WEXIT",5) || commandMatching(input,"WQUIT",5))
+                        {
+                            index = 7;          //WEXIT WQUIT
+                            return true;                           
+                        }
+                        else return false;
+            case 'H' :  if(commandMatching(input,"HELP",4))
+                        {
+                            index = 8;          //HELP
+                            return true;                           
+                        }
+                        else return false;
+            case 'T' :  if(commandMatching(input,"TABLE",5))
+                        {
+                            index = 9;          //TABLE
+                            return true;                           
+                        }
+                        else return false;
+            case 'S' :  if(commandMatching(input,"STORE",5))
+                        {
+                            index = 10;          //STORE
+                            return true;                           
+                        }
+                        else return false;                                                                                                                                                                                                
+            default:    return false;   //invalid command                                            
+        }
+    }
+}
+
+
+
+
+

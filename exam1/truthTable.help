@@ -1,0 +1,26 @@
+****************************TRUTH TABLE HELPER****************************;
+
+Operator precedence relations(decreasing order);
+1 - NOT (~);
+2 - AND (&);
+3 - OR (|);
+4 - NAND (@);
+5 - NOR (%);
+6 - XOR (^);
+7 - IMPLICATION (=>);
+8 - BI-IMPLICATION (<=>);
+
+Command's instructions:;
+NEW x - Create an expression with x is the expression string;
+DELETE y - Delete an expression with y is the index of the expression;
+LIST - List all expressions;
+LOAD - Load a file .truth and print to the screen;
+IS x = y - Compare the results of two expression, with x and y are the expression numbers;
+EDIT x - Update an existing expression with x is the expression number;
+TABLE y - View the truth table of an expression with y is the expression number;
+STORE - Save all current expression to a file following ".truth" extension;
+HELP - View the instructions;
+QUIT or EXIT - Exit the program
+WQUIT or WEXIT - Save all currents expression into a file and exit the program;
+
+****************************TRUTH TABLE HELPER****************************;
