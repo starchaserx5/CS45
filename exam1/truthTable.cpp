@@ -136,7 +136,7 @@ bool illegalSet(string input)          //See if the user entered a double comma 
  
 bool precedence(const string &incoming, const string &tos) //Return TRUE is incoming operator
 {
-     return whoIsFirst(incoming) < whoIsFirst(tos);  //is less than what is on the top of the operator stack
+    return whoIsFirst(incoming) < whoIsFirst(tos);  //is less than what is on the top of the operator stack
 }
  
 bool convertToRPN(string input, string &output)
@@ -145,7 +145,9 @@ bool convertToRPN(string input, string &output)
     //check invalid operator & % ^ 
     if(illegalSet(input) || !illegalImplication(input))             
         return false;                             //invalid implication input check
-    cout << "The expression after reducing: " << input << endl;
+    // cout << "The expression after reducing: " << input << endl;
+    unsigned int opCount = 0;
+    unsigned int leCount = 0;
     vector<string>  operatorStack;                //Holds operators
     string  op, operand, parens;                  //Holds the current operator and operand
     output = "";                                  //Initialize output to empty
@@ -158,6 +160,7 @@ bool convertToRPN(string input, string &output)
                 return false;                       //missing an operator to perform bitwise A&B(&D)
             operand = input[0];
             output += operand + " ";
+            leCount++;
             input.erase(0,1);                     //Remove the operand from the input
         }
         else                                      //Otherwise
@@ -175,6 +178,7 @@ bool convertToRPN(string input, string &output)
             case '@':                           //we either immediately push it onto the operand stack
             case '%':                           //or push higher precedence operators currently in the stack
             case '^' :  op = input[0];          //onto the output
+                        (op == "~") ? opCount : (opCount++);
                         if(invalidCharAfter(input[1]))  
                             return false;       //invalid two operators next to each other
                         while ((operatorStack.size() > 0) && precedence(op, operatorStack[operatorStack.size() - 1]))
@@ -221,6 +225,9 @@ bool convertToRPN(string input, string &output)
         output += op + " ";
         operatorStack.pop_back();
     }
+    //num of letters and operator not match
+    if (leCount != (opCount + 1))
+        return false;
     return true;                      //Signify a successful conversion to RPN
 }
  
