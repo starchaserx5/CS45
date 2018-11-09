@@ -45,9 +45,9 @@ bool storeHelper(string fileName, vector<vector<string>> totalExpression,bool& h
 bool storeCommand(vector<vector<string>> totalExpression,unsigned int pos,string input,bool& hasSaved);
 bool checkFileName(string fileName);
 bool checkExtension(string fileName) ;
-void loadHelper(string fileName, vector<vector<string>> totalExpression);
 void exitHelper(string fileName, vector<vector<string>> totalExpression,bool& hasSaved);
-bool loadCommand(vector<vector<string>> totalExpression, unsigned int pos, string input) ;
+void loadHelper(string fileName, vector<vector<string>>& totalExpression);
+bool loadCommand(vector<vector<string>>& totalExpression, unsigned int pos, string input) ;
 bool editCommand(string input,unsigned int pos,vector<vector<string>>& totalExpression);
 void exitCommand(vector<vector<string>> totalExpression,unsigned int pos,string input,bool& hasSaved);
 void wExitCommand(vector<vector<string>> totalExpression);
@@ -1058,7 +1058,8 @@ bool storeHelper(string fileName, vector<vector<string>> totalExpression,bool& h
         myFile.open(fileName,ios::app); //append to the expression to the end
         for(int i=0;i<totalExpression.size();++i)
         {
-            myFile << (totalExpression[i][0]) << endl;
+            string temp = (totalExpression[i][0]) + ";" ;
+            myFile << temp ;
         }
         hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
         myFile.close(); //close the file
@@ -1068,14 +1069,19 @@ bool storeHelper(string fileName, vector<vector<string>> totalExpression,bool& h
 }
 
 //LOAD command
-bool loadCommand(vector<vector<string>> totalExpression,unsigned int pos,string input)
+bool loadCommand(vector<vector<string>>& totalExpression,unsigned int pos,string input)
 {
     string fileName = input.substr(pos + 4); //get fileName
+    if(fileName == "")
+    {
+        cout << "Missing the file name." << endl;
+        return true;//invalid command
+    }
     loadHelper(fileName, totalExpression);
     return true;
 }
 
-void loadHelper(string fileName, vector<vector<string>> totalExpression)
+void loadHelper(string fileName, vector<vector<string>>& totalExpression)
 {
     string ans = "";
     removeSpace(fileName);
@@ -1101,12 +1107,23 @@ void loadHelper(string fileName, vector<vector<string>> totalExpression)
     {
         string line;
         ifstream opFile(fileName);
+        unsigned int index = 0;
+        string rpn = "";
         if (opFile.is_open())
         {
-            while (getline(opFile, line))
+            totalExpression.clear();    //clear all current elements
+            while (getline(opFile, line,';'))
             {
-                cout << line << "\n";
+                convertToRPN(line,rpn);
+                vector<string> expression;
+                expression.push_back(line);
+                expression.push_back(rpn);
+                cout <<"Origin exp: "<<expression[0];
+                cout <<" RPN exp: "<<expression[1]<<endl;
+                totalExpression.push_back(expression);
+                // cout << line << "\n";
             }
+            cout << "Size after loading: " << totalExpression.size() << endl;
             opFile.close();
         }
         else
@@ -1243,8 +1260,11 @@ void exitHelper(string fileName, vector<vector<string>> totalExpression,bool& ha
             ofstream newFile(fileName, ios::trunc);  //open file and overwrite
             if(newFile.is_open())
             {
-                 for(int i=0;i<totalExpression.size();++i)
-                    newFile << (totalExpression[i][0]) << endl;
+                for(int i=0;i<totalExpression.size();++i)
+                {
+                    string temp = (totalExpression[i][0]) + ";" ;
+                    newFile << temp ;
+                }
             }
             else
                 cout << "Failed to overwrite." << endl;
@@ -1256,7 +1276,8 @@ void exitHelper(string fileName, vector<vector<string>> totalExpression,bool& ha
         myFile.open(fileName,ios::app); //append to the expression to the end
         for(int i=0;i<totalExpression.size();++i)
         {
-            myFile << (totalExpression[i][0]) << endl;
+            string temp = (totalExpression[i][0]) + ";";
+            myFile << temp ;
         }
         hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
         myFile.close(); //close the file
@@ -1273,7 +1294,10 @@ void wExitCommand(vector<vector<string>> totalExpression)
         ofstream myFile;
         myFile.open(fileName,ios::app); //append to the expression to the end
         for(int i=0;i<totalExpression.size();++i)
-            myFile << (totalExpression[i][0]) << endl;
+        {
+            string temp = (totalExpression[i][0]) + ";" ;
+            myFile << temp ;
+        }
         myFile.close(); //close the file
     }
     else
@@ -1288,7 +1312,10 @@ void wExitCommand(vector<vector<string>> totalExpression)
         ofstream myFile;
         myFile.open(newFile,ios::app); //append to the expression to the end
         for(int i=0;i<totalExpression.size();++i)
-            myFile << (totalExpression[i][0]) << endl;
+        {
+            string temp = (totalExpression[i][0]) + ";" ;
+            myFile << temp ;
+        }
         myFile.close(); //close the file
     }
     exit(0);    //close program
