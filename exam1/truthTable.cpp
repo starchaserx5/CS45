@@ -65,18 +65,19 @@ int main()
     bool hasSaved = false;
     while(getInput(line))                   //As long as there is input from the keyboard
     {        
-        // if (convertToRPN(line, output)) //See if we can convert infix to postfix notation
-        //     process(output, sets); //process(output,sets); //If we can, process the input
-        // else //If not, tell the user that there was bad input
-        //     cout << "Illegal expression!!!" << endl;
+
         if(commandInput(line,totalExpression,hasSaved))
         {
             // string rpn = totalExpression[0][1];
             // process(rpn,sets);
+            cout <<"--------------"<<endl;
         }
         else 
+        {
             cout << "Invalid command!!!. Please type HELP for instructions" << endl;
-        cout <<"--------------"<<endl;
+            cout <<"--------------"<<endl;
+        }            
+        
     }
     return 0;
 }
@@ -422,7 +423,7 @@ void removeSpace(string &input)
         int pos = input.find(" ");
         input.erase(pos, 1);
     }
-    cout << "Input after remove space : " << input << endl;
+    // cout << "Input after remove space : " << input << endl;
 }
 
 // Find illegal input of implication or bi-immplication
