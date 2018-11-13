@@ -18,27 +18,31 @@ unsigned int unionOfTwoSets(string x, string y, string &output,int sets[]);
 unsigned int intersectionOfTwoSets(string x, string y, string &output,int sets[]);
 unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[]);
 unsigned int setCompliment(string x, string &output,int sets[]);
-int userHelper(string &input, int &equalPos);
-bitset<32> setHelper(string &input);
+bool setCommand(string &input, int sets[]);
+bitset<16> setHelper(string &input);
+bool commandInput(string& input,int sets[]);
+bool commandMatching(string input,string commandName,unsigned int size);
+bool commandHelper(string input,unsigned int& index);
+void removeSpace(string& input);
+
 
 int main()
 {
     string line, output;            //Create input (line) and output (output) variables for functions to use
-    int sets[26] = {};                   //Create a 26 element array of sets
-    int equalPos = -1;              //pos of equal sign
-    int index = -1;                 //index of a set
+    int sets[26] = {};              //Create a 26 element array of sets
+
 
     while(getInput(line))           //As long as there is input from the keyboard
     {
-        index = userHelper(line,equalPos); // get index of a set
-        cout << "The input after eliminate the l-expression:" << line 
-             << "\nthe index is " << index << " " << endl;
 
         //check if the input is invalid or not
-        if(convertToRPN(line, output) && index != -1) //See if we can convert infix to postfix notation
-            process(output,sets, index);      //If we can, process the input
+        if(commandInput(line,sets)) //See if we can convert infix to postfix notation
+            cout <<"--------------"<<endl;
         else                           //If not, tell the user that there was bad input
-            cout<<"Illegal expression!"<<endl;
+        {
+            cout<<"Illegal command! Please type HELP for the instructions."<<endl;
+            cout <<"--------------"<<endl;
+        }
     }
     return 0;
 }
@@ -194,7 +198,7 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             operandStack.pop_back();    //Pop them, then perform the union
                             y = operandStack.back();
                             operandStack.pop_back();
-                            result = unionOfTwoSets(x, y, output,sets);
+                            result = unionOfTwoSets(y, x, output,sets);
                             operandStack.push_back(output); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
@@ -202,7 +206,7 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             operandStack.pop_back();        //Pop them, then perform the intersection
                             y = operandStack.back();
                             operandStack.pop_back();
-                            result = intersectionOfTwoSets(x, y, output,sets);//The place the result onto the operand stack
+                            result = intersectionOfTwoSets(y, x, output,sets);//The place the result onto the operand stack
                             operandStack.push_back(output); //Then place the result onto the operand stack
                             rpn.erase(0,1);                 //Delete from input the operand
                             break;
@@ -363,10 +367,15 @@ unsigned int setCompliment(string x, string &output, int sets[])
     @equalPos: return the position of "=" sign if there is "SET" command
 */
 
-int userHelper(string &input, int &equalPos)
+bool setCommand(string &input, int sets[])
 {
+    //remove spaces trailing leading space
+    removeSpace(input);    
+
     unsigned int posSet = input.find("SET");
     unsigned int posEqual = input.find("=");
+    unsigned int posBracket = input.find("{");
+    string output = ""; //result after process RPN expression
     string strSet = "";
     int index = -1; //index of a set
 
@@ -379,26 +388,55 @@ int userHelper(string &input, int &equalPos)
             strSet.erase(0, 1); //remove leading spaces
 
         //find letter index
-        if (strSet[0] >= 'A' || strSet[0] <= 'Z')
+        if ((int)strSet[0] >= 65 || (int)strSet[0] <= 90)
         {
             index = (int(strSet[0]) - 65); //get an index of a set
-            equalPos = posEqual;
-            input = input.substr(posEqual+1, input.size()); // get the right expression
-            cout << "index of the set is " << index 
-                 << "\n char is " << strSet[0] << ". "
-                 << "Equal sign at pos is " << equalPos << endl;
-        }
+            if(index<0)
+            {
+                cout << "The name of a set is invalid;" <<endl;
+                return false;
+            }
+            else
+            {
+                cout << "index of the set is " << index
+                 << "\nChar index is " << strSet[0] << ". "
+                 << "Equal sign at pos is " << posEqual << endl;
+            }
+        }  
     }
-    return index; //return index of a set(A,B,C,etc..)
+    else
+        return false;   //invalid command
+
+
+    input = input.substr(posEqual+1, input.size()); // get the right expression
+    cout << "String input: "<<input<<endl;
+    //get universe set {1,2,3...}
+    if(posBracket < input.size())
+    {
+        bitset<16> universeNum = setHelper(input);      //convert from set to a num
+        if((int)(universeNum.to_ulong()) < 0) 
+        {
+            cout << "Invalid universe set's numbers;" <<endl;
+            return false;       //not accept negative number in universe set
+        }
+        else
+            sets[index] = (int)(universeNum.to_ulong());
+    }  
+    else
+    {
+        convertToRPN(input,output);
+        process(output,sets,index);
+    }
+
+    return true;  //valid command
 }
 
 /*  Helper will convert the set of numbers to int
     seperate each number by comma and add them up.
 */
-
-bitset<32> setHelper(string &input)
+bitset<16> setHelper(string &input)
 {
-    bitset<32> num;
+    bitset<16> num;
     int firstBracket = input.find_first_of("{");
     int lastBracket = input.find_first_of("}");
     string subSet = input.substr(firstBracket + 1, lastBracket - 1); // get sub set of the numbers
@@ -476,3 +514,88 @@ void printBitSet(unsigned long num)
             cout << numSet[i] << ", ";
     }
 }
+
+//remove all spaces in input string
+void removeSpace(string& input)
+{
+    int pos = 0;
+    while((pos = input.find(' ')) < 0)
+        input.erase(pos,1);
+}
+
+//compare user's command input to default command
+//return true if matching
+bool commandMatching(string input,string commandName,unsigned int size)
+{
+    cout << "Substring is: "<<input.substr(0,size)<<endl;
+    return (input.substr(0,size) == commandName);
+}
+/*  Find a first letter matches to first letter from one of commands in the list(LIST,HELP,SET,LOAD,SAVE)
+    Check the rest of letters. If it matches return true
+    otherwise return false
+*/
+bool commandHelper(string input,unsigned int& index)
+{
+    while(input.size()>0)
+    {
+        switch(input[0])
+        {
+            case ' ' :  input.erase(0,1);
+                        break;
+            case 'S' :  if(commandMatching(input,"SET",3))
+                        {
+                            index = 0;          //NEW
+                            cout << "Input is : " << input << endl;
+                            return true;                           
+                        }
+                        else if(commandMatching(input,"SAVE",4))
+                        {
+                            index = 1;          //SAVE
+                            return true;                           
+                        } 
+                        else return false;
+            case 'H' :  if(commandMatching(input,"HELP",4))
+                        {
+                            index = 2;          //HELP
+                            return true;                           
+                        }
+                        else return false;
+            case 'L' :  if(commandMatching(input,"LIST",4))
+                        {
+                            index = 3;          //LIST
+                            return true;                           
+                        }
+                        else if(commandMatching(input,"LOAD",4))
+                        {
+                            index = 4;          //LOAD
+                            return true;                           
+                        }                                                                                                                                                                        
+            default:    return false;   //invalid command                                            
+        }
+    }
+}
+
+/*  Call commandHelper to parse the command
+    If the command doesn't match the listed command keyword
+    return false.
+ */
+bool commandInput(string& input,int sets[])
+{
+    unsigned int index = -1;        //index of command
+    //check valid command
+    if(!commandHelper(input,index))
+        return false;
+    
+    
+    switch (index)
+    {
+        case 0:
+            return setCommand(input,sets);
+            break;
+
+        default:
+            return false;   //invalid command
+    }
+}
+
+
