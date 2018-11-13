@@ -62,7 +62,7 @@ int whoIsFirst(const string &incoming) //Convert operator to its precedence valu
     int value = 0;
     switch(incoming[0])
     {
-        case '!' : value = 3;          //Compliment is the highest
+        case '~' : value = 3;          //Compliment is the highest
                    break;
         case '*' : value = 2;
                    break;
@@ -121,7 +121,7 @@ bool convertToRPN(string input, string &output)
                 case '*' :                          //If it is any valid operator
                 case '\\' :                         //we either immediately push it onto the operand stack
                 case '+' :                          //or push higher precedence operators currently in the stack
-                case '!' : op = input[0];           //onto the output
+                case '~' : op = input[0];           //onto the output
                            while((operatorStack.size() > 0) && precedence(op, operatorStack[operatorStack.size()-1]))
                            {
                                 output += operatorStack.back() + " ";
@@ -183,12 +183,12 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                 case '{' :  pos = rpn.find('}');//If curly braces, get the unnamed set
                             set = (rpn.substr(0, pos + 1));
                             // operandStack.push_back(set); //and push it onto the operand stack                                                        
-                            cout << "num after converted from set: " << std::to_string((setHelper(set).to_ulong())) << endl;
+                            // cout << "num after converted from set: " << std::to_string((setHelper(set).to_ulong())) << endl;
                             result = setHelper(set).to_ulong();//set number to a set.
-                            operandStack.push_back(std::to_string((setHelper(set).to_ulong()))); //convert bitset<32> to string and push to stack
+                            operandStack.push_back(to_string(result)); //convert bitset<32> to string and push to stack
                             rpn.erase(0, pos+1);         //Then remove it from the RPN input
                             break;
-                case '!' :  x = operandStack.back();     //If compliment operator
+                case '~' :  x = operandStack.back();     //If compliment operator
                             operandStack.pop_back();     //Pop an operand and
                             result = setCompliment(x, output,sets); //compliment it
                             operandStack.push_back(output); //Push the result back onto the operand stack
@@ -411,22 +411,22 @@ bool setCommand(string &input, int sets[])
     input = input.substr(posEqual+1, input.size()); // get the right expression
     cout << "String input: "<<input<<endl;
     //get universe set {1,2,3...}
-    if(posBracket < input.size())
-    {
-        bitset<16> universeNum = setHelper(input);      //convert from set to a num
-        if((int)(universeNum.to_ulong()) < 0) 
-        {
-            cout << "Invalid universe set's numbers;" <<endl;
-            return false;       //not accept negative number in universe set
-        }
-        else
-            sets[index] = (int)(universeNum.to_ulong());
-    }  
-    else
-    {
+    // if(posBracket < input.size())
+    // {
+    //     bitset<16> universeNum = setHelper(input);      //convert from set to a num
+    //     if((int)(universeNum.to_ulong()) < 0) 
+    //     {
+    //         cout << "Invalid universe set's numbers;" <<endl;
+    //         return false;       //not accept negative number in universe set
+    //     }
+    //     else
+    //         sets[index] = (int)(universeNum.to_ulong());
+    // }  
+    // else
+    // {
         convertToRPN(input,output);
         process(output,sets,index);
-    }
+    // }
 
     return true;  //valid command
 }
