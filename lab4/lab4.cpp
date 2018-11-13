@@ -4,6 +4,8 @@
 #include <bitset>
 #include <string>
 #include <array>
+#include <fstream>
+#include <algorithm> 
 
 using namespace std;
  
@@ -24,6 +26,10 @@ bool commandInput(string& input,int sets[]);
 bool commandMatching(string input,string commandName,unsigned int size);
 bool commandHelper(string input,unsigned int& index);
 void removeSpace(string& input);
+bool helpCommand(string input);
+bool checkFileName(string fileName);
+bool saveHelper(string fileName, int sets[]);
+bool saveCommand(int sets[], string input);
 
 
 int main()
@@ -224,7 +230,6 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
 
     //assign the elements to a set with index
     sets[index] = result;
-    cout << "--------------------------------------------" << endl;
 }
  
  
@@ -410,23 +415,9 @@ bool setCommand(string &input, int sets[])
 
     input = input.substr(posEqual+1, input.size()); // get the right expression
     cout << "String input: "<<input<<endl;
-    //get universe set {1,2,3...}
-    // if(posBracket < input.size())
-    // {
-    //     bitset<16> universeNum = setHelper(input);      //convert from set to a num
-    //     if((int)(universeNum.to_ulong()) < 0) 
-    //     {
-    //         cout << "Invalid universe set's numbers;" <<endl;
-    //         return false;       //not accept negative number in universe set
-    //     }
-    //     else
-    //         sets[index] = (int)(universeNum.to_ulong());
-    // }  
-    // else
-    // {
-        convertToRPN(input,output);
-        process(output,sets,index);
-    // }
+    convertToRPN(input,output);
+    process(output,sets,index);
+ 
 
     return true;  //valid command
 }
@@ -592,10 +583,122 @@ bool commandInput(string& input,int sets[])
         case 0:
             return setCommand(input,sets);
             break;
+        case 1:
+            return saveCommand(sets,input);
+            break;
+        case 2:
+            return helpCommand(input);
+            break;
 
         default:
             return false;   //invalid command
     }
 }
 
+bool helpCommand(string input)
+{
+    string fileName = "lab4.help";
+    if(checkFileName(fileName))
+    {
+        ifstream opFile(fileName);
+        unsigned int pos = 0;
+        string token = "";
+        if(opFile.is_open())
+        {
+            while(getline(opFile,token,';'))
+                cout << token;
+            cout << endl;
+            opFile.close();
+        }
+        return true;
+    }
+    return false;//invalid command
+}
 
+
+//check if File Name already exist 
+//return true if exists ; otherwise false
+bool checkFileName(string fileName)
+{
+    ifstream file(fileName);
+    return (bool)file; 
+}
+
+
+//Create a new file 
+//if file already exists, overwrite it or give another file name
+//return true if checkFileName
+bool saveHelper(string fileName, int sets[])
+{
+    string ans = "";
+    removeSpace(fileName);
+    //add extension to file if missing
+    //if exist lowercase extensions
+    //if fileName exists
+    if(checkFileName(fileName))
+    {
+        cout << "File already exists" << endl;
+        //erase file
+        cout << "Would you like to erase the file(Y/N): ";
+        getline(cin,ans);
+        transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
+        if(ans == "Y" || ans == "YES")
+        {
+            remove(fileName.c_str());                                   //remove the file
+            cout << "File is removed succesfully." << endl;
+            return true;
+        }
+        else
+        {
+            cout << "Would you like to rename the file(Y/N): ";
+            getline(cin, ans);
+            transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
+            if (ans == "Y" || ans == "YES")
+            {
+                cout << "Enter new file name: " << endl;
+                getline(cin, ans);
+                removeSpace(ans);
+                //check extension missing
+                while(checkFileName(ans))
+                {
+                    cout << "File already exists. Please enter another name:" << endl;
+                    getline(cin, ans);
+                }                               
+                rename(fileName.c_str(), ans.c_str());
+                cout << "File successfully renamed." << endl;
+                return true;
+            }
+        }
+    }
+    else
+    {
+        ofstream myFile;
+        myFile.open(fileName,ios::app); //append to the expression to the end
+        for(int i=0;i<26;++i)
+        {
+            string temp = sets[i] + ";" ;
+            myFile << temp ;
+        }
+        // hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
+        myFile.close(); //close the file
+        return true;
+    }
+    return false;//failed to save the file
+}
+
+
+//store all expressions if file doesn't exist
+//otherwise rename or remove that file
+bool saveCommand(int sets[],string input)
+{
+    unsigned int pos = input.find("SAVE");
+    string fileName = input.substr(pos+4); //get fileName
+    cout<<"File name: " << fileName <<endl;
+    if(fileName == "")
+    {
+        cout << "Missing the file name." <<endl;
+        return true;
+    }
+    return saveHelper(fileName,sets);
+    // return true;
+}
