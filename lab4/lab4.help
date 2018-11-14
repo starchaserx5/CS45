@@ -1,0 +1,23 @@
+****************************LAB 4 HELPER****************************;
+
+Operator precedence relations(decreasing order);
+1 - NOT (~);
+2 - AND (*);
+3 - OR (+);
+4 - SET DIFFERENCE (\);
+
+Command's instructions:;
+SET  -  SET x = expression 
+        Create a set of number from 0-15, with x is a set name is represent by a letter(A-Z),
+        expression can be letters or a set of number from 0-15. 
+        For example: SET A = B+C or SET A = {0,1,2,3}*B;        
+LIST -  List all sets and their contents;
+SAVE -  Save all current sets to a file; 
+        For example: SAVE nameoffile 
+LOAD -  Load all sets from a file
+        For example: LOAD nameoffile;
+HELP -  View the instructions;
+
+To exit the program, press enter on new command input;
+
+****************************LAB 4 HELPER****************************;
