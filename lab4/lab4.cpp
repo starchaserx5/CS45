@@ -6,6 +6,7 @@
 #include <array>
 #include <fstream>
 #include <algorithm> 
+#include <iterator>
 
 using namespace std;
  
@@ -183,6 +184,8 @@ bool process(string rpn, int sets[], int index)    //Process the RPN on sets
         if(rpn[0] >= 'A' && rpn[0] <= 'Z') //If a named set, push onto the operand stack
         {
             operandStack.push_back(output = rpn[0]);
+            result = sets[((int)(rpn[0])) -65];
+            // sets[index] = temp;
             rpn.erase(0,1);
         }
         else                                //Otherwise
