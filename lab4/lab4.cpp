@@ -15,13 +15,13 @@ int whoIsFirst(const string &incoming);
 bool precedence(const string &incoming, const string &tos);
 bool convertToRPN(string input, string& output);
 bool getInput(string &line);
-void process(string rpn, int sets[], int index);
+bool process(string rpn, int sets[], int index);
 unsigned int unionOfTwoSets(string x, string y, string &output,int sets[]);
 unsigned int intersectionOfTwoSets(string x, string y, string &output,int sets[]);
 unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[]);
 unsigned int setCompliment(string x, string &output,int sets[]);
 bool setCommand(string &input, int sets[]);
-bitset<16> setHelper(string &input);
+bool setHelper(string& input,unsigned int& setNum);
 bool commandInput(string& input,int sets[]);
 bool commandMatching(string input,string commandName,unsigned int size);
 bool commandHelper(string input,unsigned int& index);
@@ -38,8 +38,9 @@ bool listCommand(int *sets,string input);
 int main()
 {
     string line, output;            //Create input (line) and output (output) variables for functions to use
-    int sets[26] = {-1};              //Create a 26 element array of sets
-
+    int sets[26] = {};              //Create a 26 element array of sets
+    for(int i=0;i<26;++i)
+        sets[i]= -1;
 
     while(getInput(line))           //As long as there is input from the keyboard
     {
@@ -89,6 +90,8 @@ bool illegalSet(string input)          //See if the user entered a double comma 
     return (input.find(",,") < size ||
             input.find("{,")  < size ||
             input.find(",}") < size ||
+            input.find("{{") < size ||
+            input.find("}}") < size ||
             input.find_first_not_of("0123456789{,}") < size);
 }
  
@@ -122,8 +125,7 @@ bool convertToRPN(string input, string &output)
                            if(pos > input.size() || pos2 < pos)
                                return false;        //If not, signify that an invalid unnamed set was read in
                            parens = (input.substr(0,pos + 1)) + " "; //It is is valid, pull it out of the input
-                           if(illegalSet(parens))   //Did they enter a double comma?
-                               return false;
+                           if(illegalSet(parens)) return false;   //Did they enter a double comma?                                
                            output += parens;        //Bad input!!
                            input.erase(0,pos + 1);  //and remove it from the input
                            break;
@@ -169,9 +171,9 @@ bool convertToRPN(string input, string &output)
 }
  
  
-void process(string rpn, int sets[], int index)    //Process the RPN on sets
+bool process(string rpn, int sets[], int index)    //Process the RPN on sets
 {
-    unsigned int result = 0, pos;       //Initialize result to 0 (or create a bitset to be your result holder)
+    unsigned int result = -1, pos;       //Initialize result to 0 (or create a bitset to be your result holder)
     vector<string> operandStack;        //Create an operand and operator stack
     vector<char> operatorStack;
     string set, x, y, output;           //Create some temporary variables
@@ -193,7 +195,8 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
                             set = (rpn.substr(0, pos + 1));
                             // operandStack.push_back(set); //and push it onto the operand stack                                                        
                             // cout << "num after converted from set: " << std::to_string((setHelper(set).to_ulong())) << endl;
-                            result = setHelper(set).to_ulong();//set number to a set.
+                            if(!setHelper(set,result))
+                                return false;   //invalid
                             operandStack.push_back(to_string(result)); //convert bitset<32> to string and push to stack
                             rpn.erase(0, pos+1);         //Then remove it from the RPN input
                             break;
@@ -230,7 +233,6 @@ void process(string rpn, int sets[], int index)    //Process the RPN on sets
             }
         }
     }
-
     //assign the elements to a set with index
     sets[index] = result;
 }
@@ -242,15 +244,15 @@ unsigned int unionOfTwoSets(string x, string y, string &output,int sets[])
 {
     bitset<16> setX = 0;
     bitset<16> setY = 0;
-    cout << "String X is: " << x << endl;
-    cout << "String Y is: " << y << endl;
+    // cout << "String X is: " << x << endl;
+    // cout << "String Y is: " << y << endl;
 
     //x is a set letter
     if(x[0] >= 'A' && x[0] <= 'Z')
     {
         setX = sets[x[0]-'A'];//convert number to bitset
         // cout << "The bitset X is: " << setX << endl;
-        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
+        // cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
     }
     else
         setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
@@ -259,17 +261,17 @@ unsigned int unionOfTwoSets(string x, string y, string &output,int sets[])
     {
         setY = sets[y[0]-'A']; //convert number to bitset
         // cout << "The bitset Y is: " << setX << endl;
-        cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
+        // cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
     }
     else
         setY = stoul(y,nullptr,0);
-    cout << "The bitset X is: " << setX << endl;
-    cout << "The bitset Y is: " << setY << endl;
+    // cout << "The bitset X is: " << setX << endl;
+    // cout << "The bitset Y is: " << setY << endl;
     //OR bitwise
     setX |= setY;
     output = std::to_string(setX.to_ulong());//convert int setX to string
-    cout << "The bitset after OR is: " << setX << endl;
-    cout << "The output after OR is: " << output << endl;
+    // cout << "The bitset after OR is: " << setX << endl;
+    // cout << "The output after OR is: " << output << endl;
     return setX.to_ulong();
 }
  
@@ -277,15 +279,15 @@ unsigned int intersectionOfTwoSets(string x, string y, string &output, int sets[
 {
     bitset<16> setX = 0;
     bitset<16> setY = 0;
-    cout << "String X is: " << x << endl;
-    cout << "String Y is: " << y << endl;
+    // cout << "String X is: " << x << endl;
+    // cout << "String Y is: " << y << endl;
 
     //x is a set letter
     if(x[0] >= 'A' && x[0] <= 'Z')
     {
         setX = sets[x[0]-'A'];//convert number to bitset
         // cout << "The bitset X is: " << setX << endl;
-        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
+        // cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
     }
     else
         setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
@@ -294,17 +296,17 @@ unsigned int intersectionOfTwoSets(string x, string y, string &output, int sets[
     {
         setY = sets[y[0]-'A']; //convert number to bitset
         // cout << "The bitset Y is: " << setX << endl;
-        cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
+        // cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
     }
     else
         setY = stoul(y,nullptr,0);
-    cout << "The bitset X is: " << setX << endl;
-    cout << "The bitset Y is: " << setY << endl;
+    // cout << "The bitset X is: " << setX << endl;
+    // cout << "The bitset Y is: " << setY << endl;
     //AND bitwise
     setX &= setY;
     output = std::to_string(setX.to_ulong());
-    cout << "The bitset after AND is: " << setX << endl;
-    cout << "The output after AND is: " << output << endl;
+    // cout << "The bitset after AND is: " << setX << endl;
+    // cout << "The output after AND is: " << output << endl;
     return setX.to_ulong();
 }
  
@@ -312,15 +314,15 @@ unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[])
 {
     bitset<16> setX = 0;
     bitset<16> setY = 0;
-    cout << "String X is: " << x << endl;
-    cout << "String Y is: " << y << endl;
+    // cout << "String X is: " << x << endl;
+    // cout << "String Y is: " << y << endl;
 
     //x is a set letter
     if(x[0] >= 'A' && x[0] <= 'Z')
     {
         setX = sets[x[0]-'A'];//convert number to bitset
         // cout << "The bitset X is: " << setX << endl;
-        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
+        // cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
     }
     else
         setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
@@ -329,18 +331,18 @@ unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[])
     {
         setY = sets[y[0]-'A']; //convert number to bitset
         // cout << "The bitset Y is: " << setX << endl;
-        cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
+        // cout << "The bitset sets[" << y[0]-'A' << "] is: " << sets[y[0]-'A'] << endl;
     }
     else
         setY = stoul(y,nullptr,0);
-    cout << "The bitset X is: " << setX << endl;
-    cout << "The bitset Y is: " << setY << endl;
+    // cout << "The bitset X is: " << setX << endl;
+    // cout << "The bitset Y is: " << setY << endl;
     //differentiation bitwise
     setY.flip();//flip all bit
     setX &= setY;
     output = std::to_string(setX.to_ulong());
-    cout << "The bitset after \"difference\" is: " << setX << endl;
-    cout << "The output after \"difference\" is: " << output << endl;
+    // cout << "The bitset after \"difference\" is: " << setX << endl;
+    // cout << "The output after \"difference\" is: " << output << endl;
     return setX.to_ulong();
 }
  
@@ -353,16 +355,16 @@ unsigned int setCompliment(string x, string &output, int sets[])
     {
         setX = sets[x[0]-'A'];//convert number to bitset
         // cout << "The bitset X is: " << setX << endl;
-        cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
+        // cout << "The sets[" << x[0]-'A' << "] is: " << sets[x[0]-'A'] << endl;
     }
     else
         setX = stoul(x,nullptr,0);//convert string --> ulong -->bitset
-    cout << "The bitset X is: " << setX << endl;
+    // cout << "The bitset X is: " << setX << endl;
     //Take COMPLIMENT
     setX = setX.flip();
     output = std::to_string(setX.to_ulong());
-    cout << "The bitset after \"difference\" is: " << setX << endl;
-    cout << "The output after \"difference\" is: " << output << endl;
+    // cout << "The bitset after \"difference\" is: " << setX << endl;
+    // cout << "The output after \"difference\" is: " << output << endl;
     return setX.to_ulong();
 }
 
@@ -404,21 +406,21 @@ bool setCommand(string &input, int sets[])
                 cout << "The name of a set is invalid;" <<endl;
                 return false;
             }
-            else
-            {
-                cout << "index of the set is " << index
-                 << "\nChar index is " << strSet[0] << ". "
-                 << "Equal sign at pos is " << posEqual << endl;
-            }
+            // else
+            // {
+            //     cout << "index of the set is " << index
+            //      << "\nChar index is " << strSet[0] << ". "
+            //      << "Equal sign at pos is " << posEqual << endl;
+            // }
         }  
     }
     else
         return false;   //invalid command
 
 
-    input = input.substr(posEqual+1, input.size()); // get the right expression
-    cout << "String input: "<<input<<endl;
-    convertToRPN(input,output);
+    input = input.substr(posEqual+1); // get the right expression
+    if(!convertToRPN(input,output))
+        return false;
     process(output,sets,index);
  
 
@@ -428,7 +430,7 @@ bool setCommand(string &input, int sets[])
 /*  Helper will convert the set of numbers to int
     seperate each number by comma and add them up.
 */
-bitset<16> setHelper(string &input)
+bool setHelper(string& input,unsigned int& setNum)
 {
     bitset<16> num;
     int firstBracket = input.find_first_of("{");
@@ -444,15 +446,13 @@ bitset<16> setHelper(string &input)
         if (pos < subSet.size())
         {
             string strNumber = subSet.substr(0, pos);
-            try
+            if(stoi(strNumber) < 0 || stoi(strNumber) > 15)
             {
-                // cout << "Bit position is: " << strNumber << endl;
+                cout << "The universe set only accepts number in range 0-15."<<endl;
+                return false;
+            }
+            else
                 num.flip(stoi(strNumber));
-            }
-            catch (const std::exception &e)
-            {
-                std::cerr << e.what() << '\n';
-            }
             //remove substring
             subSet.erase(0, pos + 1);
             // cout << "The subset after erase: " << subSet << endl;
@@ -461,22 +461,21 @@ bitset<16> setHelper(string &input)
         else
         {
             string strNumber = subSet.substr(); //get last number
-            try
+            if(stoi(strNumber) < 0 || stoi(strNumber) > 15)
             {
-                // cout << "Bit position is: " << strNumber << endl;
+                cout << "The universe set only accepts number in range 0-15."<<endl;
+                return false;
+            }
+            else
                 num.flip(stoi(strNumber));
-            }
-            catch (const std::exception &e)
-            {
-                std::cerr << e.what() << " Last number " << '\n';
-            }
             //remove last substring number in the set
             subSet.erase(0, subSet.size());
             // cout << "The subset after erase: " << subSet << endl;
         }
     }
     // return num.to_ulong();
-    return num;
+    setNum = num.to_ulong();
+    return true;
 }
 
 /* 
@@ -486,13 +485,19 @@ bitset<16> setHelper(string &input)
 void listHelper(const int&  num)
 {
     bitset<16> bitNum = num;            //convert number to bitset
+    unsigned int index = 0;
     cout<<"{";
     for(int i=0;i<bitNum.size();++i)
     {
-        if((bitNum.test(i)) && i == 0)
-            cout << i;
-        else if(bitNum.test(i))
-            cout<< ","<<i;
+        if(index==0 && bitNum.test(i))
+        {
+            cout <<i;
+            index++;
+        }
+        else if(index!=0 && bitNum.test(i))
+        {
+            cout <<","<<i;
+        }
     }
     cout << "}"<<endl;
 }
@@ -513,7 +518,7 @@ void removeSpace(string& input)
 //return true if matching
 bool commandMatching(string input,string commandName,unsigned int size)
 {
-    cout << "Substring is: "<<input.substr(0,size)<<endl;
+    // cout << "Substring is: "<<input.substr(0,size)<<endl;
     return (input.substr(0,size) == commandName);
 }
 /*  Find a first letter matches to first letter from one of commands in the list(LIST,HELP,SET,LOAD,SAVE)
@@ -531,7 +536,6 @@ bool commandHelper(string input,unsigned int& index)
             case 'S' :  if(commandMatching(input,"SET",3))
                         {
                             index = 0;          //NEW
-                            cout << "Input is : " << input << endl;
                             return true;                           
                         }
                         else if(commandMatching(input,"SAVE",4))
@@ -659,6 +663,7 @@ bool saveHelper(string fileName, int sets[])
                 cout << "Enter new file name: " << endl;
                 getline(cin, ans);
                 removeSpace(ans);
+                transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
                 //check extension missing
                 while(checkFileName(ans))
                 {
@@ -677,7 +682,7 @@ bool saveHelper(string fileName, int sets[])
         myFile.open(fileName,ios::app); //append to the expression to the end
         for(int i=0;i<26;++i)
         {
-            unsigned int num= sets[i];
+            int num= sets[i];
             string temp = to_string(num) + ";" ;
             myFile << temp ;
         }
@@ -696,7 +701,6 @@ bool saveCommand(int sets[],string& input)
     unsigned int pos = input.find("SAVE");
     string fileName = input.substr(pos+4);          //get fileName
     removeSpace(fileName);
-    cout<<"File name:" << fileName <<"."<<endl;
     if(fileName == "")
     {
         cout << "Missing the file name." <<endl;
