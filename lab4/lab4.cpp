@@ -29,13 +29,16 @@ void removeSpace(string& input);
 bool helpCommand(string input);
 bool checkFileName(string fileName);
 bool saveHelper(string fileName, int sets[]);
-bool saveCommand(int sets[], string input);
-
+bool saveCommand(int sets[], string& input);
+void loadHelper(int sets[],string fileName);
+bool loadCommand(int sets[], string input);
+void listHelper(const int& num);
+bool listCommand(int *sets,string input);
 
 int main()
 {
     string line, output;            //Create input (line) and output (output) variables for functions to use
-    int sets[26] = {};              //Create a 26 element array of sets
+    int sets[26] = {-1};              //Create a 26 element array of sets
 
 
     while(getInput(line))           //As long as there is input from the keyboard
@@ -477,41 +480,33 @@ bitset<16> setHelper(string &input)
 }
 
 /* 
-    Convert bit to the set of number.
-    and print out
+    Convert a number to bitset, then loop through the bit array
+    Print the index array of True bitset
  */
-void printBitSet(unsigned long num)
+void listHelper(const int&  num)
 {
-    bitset<32> bitNum = num;
-    // int numSet[32];
-    array<int, 32> numSet;
-    int index = 0; //index of numset array
-    for (int i = 0; i < bitNum.size(); ++i)
+    bitset<16> bitNum = num;            //convert number to bitset
+    cout<<"{";
+    for(int i=0;i<bitNum.size();++i)
     {
-        if (bitNum.test(i))
-        {
-            numSet[index] = i;
-            index++;
-            cout << i << endl;
-        }
+        if((bitNum.test(i)) && i == 0)
+            cout << i;
+        else if(bitNum.test(i))
+            cout<< ","<<i;
     }
-    for (int i = 0; i < index; ++i)
-    {
-        if (i == 0)
-            cout << "{" << numSet[i] << ", ";
-        else if (i == index - 1)
-            cout << numSet[i] << "}";
-        else
-            cout << numSet[i] << ", ";
-    }
+    cout << "}"<<endl;
 }
+
+
 
 //remove all spaces in input string
 void removeSpace(string& input)
 {
     int pos = 0;
-    while((pos = input.find(' ')) < 0)
+    while((pos = input.find(' ')) < input.size())
+    {
         input.erase(pos,1);
+    }
 }
 
 //compare user's command input to default command
@@ -588,6 +583,12 @@ bool commandInput(string& input,int sets[])
             break;
         case 2:
             return helpCommand(input);
+            break;
+        case 3:
+            return listCommand(sets,input);
+            break;
+        case 4:
+            return loadCommand(sets,input);
             break;
 
         default:
@@ -676,7 +677,8 @@ bool saveHelper(string fileName, int sets[])
         myFile.open(fileName,ios::app); //append to the expression to the end
         for(int i=0;i<26;++i)
         {
-            string temp = sets[i] + ";" ;
+            unsigned int num= sets[i];
+            string temp = to_string(num) + ";" ;
             myFile << temp ;
         }
         // hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
@@ -689,11 +691,12 @@ bool saveHelper(string fileName, int sets[])
 
 //store all expressions if file doesn't exist
 //otherwise rename or remove that file
-bool saveCommand(int sets[],string input)
+bool saveCommand(int sets[],string& input)
 {
     unsigned int pos = input.find("SAVE");
-    string fileName = input.substr(pos+4); //get fileName
-    cout<<"File name: " << fileName <<endl;
+    string fileName = input.substr(pos+4);          //get fileName
+    removeSpace(fileName);
+    cout<<"File name:" << fileName <<"."<<endl;
     if(fileName == "")
     {
         cout << "Missing the file name." <<endl;
@@ -701,4 +704,84 @@ bool saveCommand(int sets[],string input)
     }
     return saveHelper(fileName,sets);
     // return true;
+}
+
+
+//LOAD command
+bool loadCommand(int sets[], string input)
+{
+    unsigned int pos = input.find("LOAD");
+    string fileName = input.substr(pos + 4); //get fileName
+    removeSpace(fileName);
+    if(fileName == "")
+    {
+        cout << "Missing the file name." << endl;
+        return true;//invalid command
+    }
+    loadHelper(sets,fileName);
+    return true;
+}
+
+//check the file name
+//if  the file exist read through the text file.
+//token it by ";" delimeter and assign each number to an array element of sets[]
+void loadHelper(int sets[],string fileName)
+{
+    string ans = "";
+    removeSpace(fileName);
+    //add extension to file if missing
+    //if exist lowercase extensions
+
+    //check file exist
+    if(!checkFileName(fileName))
+        cout << "The file name doesn't exist." << endl;
+    else if(fileName.size() == 0)
+        cout << "Missing file name." <<endl;
+    else
+    {
+        string line;
+        ifstream opFile(fileName);
+        unsigned int index = 0;
+        string rpn = "";
+        if (opFile.is_open())
+        {
+            while (getline(opFile, line,';'))
+            {
+                sets[index++] = stoi(line);
+            }
+            opFile.close();
+        }
+        else
+            cout << "Unable to open file" << endl;
+    }
+}
+
+
+//print list of expressions
+bool listCommand(int *sets,string input)
+{
+    int pos = 0;                           //get LIST index in the input string  
+    removeSpace(input);
+    pos = input.find("LIST");
+    string getList = input.substr(pos);    
+    //no other parameter after or before LIST
+    if(getList != "LIST" && getList.size() != 4)
+    {
+        cout<<"Command LIST is ambiguous."<<endl;
+        return true;
+    }
+    else
+    {
+        unsigned int setName = 65;                      //set name in char
+        for(int i=0;i<26;++i)
+        {
+            if(sets[i] != -1)
+            {
+                cout << char(setName+i) << " = ";
+                listHelper(sets[i]);
+            }
+        }
+        return true;
+    }
+    return false;    //command valid
 }
