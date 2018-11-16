@@ -36,10 +36,10 @@ bool getInput(string& line)
 
 void loadLCD(map<int,int>& lcdMap)
 {
-  lcdMap[0] = 105;    //{0,1,2,3,4,5}
-  lcdMap[1] = 10;     //{1,2}
+  lcdMap[0] = 31;    //{0,1,2,3,4,5}
+  lcdMap[1] = 3;     //{1,2}
   lcdMap[2] = 109;    //{0,1,3,4,6}
-  lcdMap[3] = 105;    //{0,1,2,3,6}
+  lcdMap[3] = 121;    //{0,1,2,3,6}
   lcdMap[4] = 51;     //{1,2,5,6}
   lcdMap[5] = 91;     //{0,2,3,5,6}
   lcdMap[6] = 95;     //{0,2,3,4,5,6} 
