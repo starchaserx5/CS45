@@ -1,3 +1,9 @@
+/*
+CS45 DISCRETE STRUCTURES WITH COMPUTER SCIENCE APPLICATIONS
+Professor PAUL WILKINSON
+Tom Nguyen
+Lab 5 - Morse Code
+*/
 #include <iostream>
 #include <map>
 #include <string>
