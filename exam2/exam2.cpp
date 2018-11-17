@@ -24,48 +24,64 @@ int whoIsFirst(const string &incoming);
 bool precedence(const string &incoming, const string &tos);
 bool convertToRPN(string input, string& output);
 bool getInput(string &line);
-bool process(string rpn, int sets[], int index,map<pair<string,int>,int> uniSet);
+bool process(string rpn, int sets[], int index,map<string,int> uniSet);
 unsigned int unionOfTwoSets(string x, string y, string &output,int sets[]);
 unsigned int intersectionOfTwoSets(string x, string y, string &output,int sets[]);
 unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[]);
 unsigned int setCompliment(string x, string &output,int sets[]);
-bool commandInput(string &input, int sets[], map<pair<string, int>, int> uniSet);
+bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,string> revSet,bool& hasSaved,bool& checkEmpty);
 bool commandMatching(string input,string commandName,unsigned int size);
 bool commandHelper(string input,unsigned int& index);
 void removeSpace(string& input);
 bool helpCommand(string input);
 bool checkFileName(string fileName);
-bool saveHelper(string fileName, int sets[]);
-bool setCommand(string &input, int sets[]);
+bool saveHelper(string fileName, int sets[],bool& checkSaved);
+bool setCommand(string &input, int sets[],bool& isEmpty);
 bool setHelper(string& input,unsigned int& setNum);
-bool saveCommand(int sets[], string& input);
+bool saveCommand(int sets[], string& input,bool& checkSaved,bool& isEmpty);
 void loadHelper(int sets[],string fileName);
 bool loadCommand(int sets[], string input);
-void listHelper(const int &num, map<pair<string,int>, int> uniSet);
-bool showCommand(int *sets,string input,map<pair<string,int>,int> uniSet);
-void loadUniverse(map<pair<string,int>,int>& uniSet);
-bool uniHelper(string input,unsigned int& setNum,map<pair<string,int>,int> uniMap);
+void showHelper(const int &num, map<int, string> uniSet);
+bool showCommand(int *sets,string input,map<int,string> uniSet);
+void forwardUniverse(map<string,int>& uniSet);
+void reverseUniverse(map<int, string> &uniSet);
+bool uniHelper(string input,unsigned int& setNum,map<string,int> uniMap);
+bool checkSubSet(string setA,string setB,int sets[]);
+bool isCommand(int sets[],string input);
+bool checkEqualSet(string setA,string setB,int sets[]);
+void saveFile(string fileName,int sets[],bool& hasSaved);
+void exitCommand(int sets[],bool hasSaved,bool isEmpty);
 
 int main()
 {
     string line, output;            //Create input (line) and output (output) variables for functions to use
     int sets[26] = {};              //Create a 26 element array of sets
-    map<pair<string, int>, int> uniSet;
-    loadUniverse(uniSet);           //map an array of colors string to an array of number
+    map<string, int> uniSet;        //forward Set color to nums
+    map<int, string> revSet;        //Numbers to color
+    forwardUniverse(uniSet);        //map an array of colors string to an array of number
+    reverseUniverse(revSet);
+    bool hasSaved = false;          //Check SAVE before exiting program
+    bool isEmpty = true;          //Check if the set is empty
     for(int i=0;i<26;++i)
         sets[i]= -1;
 
-    while(getInput(line))           //As long as there is input from the keyboard
+    do
     {
+        //if user enter empty line and doesn't enter any sets before
+        //hasSaved must be false, isEmpty is false
+        if(getInput(line) && (!hasSaved && !isEmpty))
+        {
+            exitCommand(sets,hasSaved,isEmpty);
+        }
         //check if the input is invalid or not
-        if(commandInput(line,sets,uniSet)) //See if we can convert infix to postfix notation
+        if(commandInput(line,sets,uniSet,revSet,hasSaved,isEmpty)) //See if we can convert infix to postfix notation
             cout <<"--------------"<<endl;
         else                           //If not, tell the user that there was bad input
         {
             cout<<"Illegal command! Please type HELP for the instructions."<<endl;
             cout <<"--------------"<<endl;
         }
-    }
+    }while(getInput(line));           //As long as there is input from the keyboard
     return 0;
 }
  
@@ -182,7 +198,7 @@ bool convertToRPN(string input, string &output)
         return true;                      //Signify a successful conversion to RPN
 }
 
-bool process(string rpn, int sets[], int index, map<pair<string, int>, int> uniSet) //Process the RPN on sets
+bool process(string rpn, int sets[], int index, map<string, int> uniSet) //Process the RPN on sets
 {
     unsigned int result = -1, pos;       //Initialize result to 0 (or create a bitset to be your result holder)
     vector<string> operandStack;        //Create an operand and operator stack
@@ -362,7 +378,7 @@ unsigned int differenceOfTwoSets(string x, string y, string &output, int sets[])
 unsigned int setCompliment(string x, string &output, int sets[])
 {
     bitset<16> setX = 0;
-    cout << "String X is: " << x << endl;
+    // cout << "String X is: " << x << endl;
     //x is a set letter
     if(x[0] >= 'A' && x[0] <= 'Z')
     {
@@ -390,7 +406,7 @@ unsigned int setCompliment(string x, string &output, int sets[])
     @equalPos: return the position of "=" sign if there is "SET" command
 */
 
-bool setCommand(string &input, int sets[],map<string,int> uniSet)
+bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
 {
     //remove spaces trailing leading space
     removeSpace(input);    
@@ -435,7 +451,7 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet)
     if(!convertToRPN(input,output))
         return false;
     process(output,sets,index,uniSet);
- 
+    isEmpty = false;                //turn on Check Empty set
 
     return true;  //valid command
 }
@@ -494,9 +510,9 @@ bool setHelper(string& input,unsigned int& setNum)
 
 /* 
     Convert a number to bitset, then loop through the bit array
-    Print the index array of True bitset
+    Map the index correspond the color, and print that color
  */
-void listHelper(const int &num, map<pair<string, int>, int> uniSet)
+void showHelper(const int &num, map<int, string> uniSet)
 {
     bitset<16> bitNum = num;            //convert number to bitset
     unsigned int index = 0;
@@ -510,7 +526,7 @@ void listHelper(const int &num, map<pair<string, int>, int> uniSet)
         }
         else if(index!=0 && bitNum.test(i))
         {
-            cout <<","<<i;
+            cout <<", "<<uniSet[i];
         }
     }
     cout << "}"<<endl;
@@ -573,7 +589,12 @@ bool commandHelper(string input,unsigned int& index)
                         {
                             index = 4;          //LOAD
                             return true;                           
-                        }                                                                                                                                                                        
+                        }     
+            case 'I' :  if(commandMatching(input,"IS",2))
+                        {
+                            index = 5;          //LOAD
+                            return true;                           
+                        }                                                                                                                                                                               
             default:    return false;   //invalid command                                            
         }
     }
@@ -583,7 +604,7 @@ bool commandHelper(string input,unsigned int& index)
     If the command doesn't match the listed command keyword
     return false.
  */
-bool commandInput(string &input, int sets[], map<pair<string, int>, int> uniSet)
+bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,string> revSet,bool& hasSaved,bool& isEmpty)
 {
     unsigned int index = -1;        //index of command
     //check valid command
@@ -594,21 +615,23 @@ bool commandInput(string &input, int sets[], map<pair<string, int>, int> uniSet)
     switch (index)
     {
         case 0:
-            return setCommand(input,sets,uniSet);
+            return setCommand(input,sets,uniSet,isEmpty);
             break;
         case 1:
-            return saveCommand(sets,input);
+            return saveCommand(sets,input,hasSaved,isEmpty);
             break;
         case 2:
             return helpCommand(input);
             break;
         case 3:
-            return showCommand(sets,input,uniSet);
+            return showCommand(sets,input,revSet);
             break;
         case 4:
             return loadCommand(sets,input);
             break;
-
+        case 5:
+            return isCommand(sets,input);
+            break;
         default:
             return false;   //invalid command
     }
@@ -644,10 +667,32 @@ bool checkFileName(string fileName)
 }
 
 
+//store all expressions if file doesn't exist
+//otherwise rename or remove that file
+bool saveCommand(int sets[],string& input,bool& checkSaved,bool& isEmpty)
+{
+    unsigned int pos = input.find("SAVE");
+    string fileName = input.substr(pos+4);          //get fileName
+    removeSpace(fileName);
+    if(isEmpty)
+    {
+        cout << "The list of expressions is empty." << endl;
+        return true;
+    }
+    else if(fileName == "")
+    {
+        cout << "Missing the file name." <<endl;
+        return true;
+    }
+    return saveHelper(fileName,sets,checkSaved);
+    // return true;
+}
+
+
 //Create a new file 
 //if file already exists, overwrite it or give another file name
 //return true if checkFileName
-bool saveHelper(string fileName, int sets[])
+bool saveHelper(string fileName, int sets[],bool& hasSaved)
 {
     string ans = "";
     removeSpace(fileName);
@@ -664,12 +709,13 @@ bool saveHelper(string fileName, int sets[])
         if(ans == "Y" || ans == "YES")
         {
             remove(fileName.c_str());                                   //remove the file
-            cout << "File is removed succesfully." << endl;
+            cout << "Old file is removed succesfully." << endl;
+            saveFile(fileName,sets,hasSaved);                                    //write a new file
             return true;
         }
         else
         {
-            cout << "Would you like to rename the file(Y/N): ";
+            cout << "Would you like to give another file name(Y/N): ";
             getline(cin, ans);
             transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
             if (ans == "Y" || ans == "YES")
@@ -686,42 +732,24 @@ bool saveHelper(string fileName, int sets[])
                 }                               
                 rename(fileName.c_str(), ans.c_str());
                 cout << "File successfully renamed." << endl;
+                saveFile(fileName,sets,hasSaved);                        //write a new file
+                return true;
+            }
+            else
+            {
+                //remove old file and write a new file with samename
+                remove(fileName.c_str());
+                saveFile(fileName,sets,hasSaved);                        //write a new file
                 return true;
             }
         }
     }
     else
     {
-        ofstream myFile;
-        myFile.open(fileName,ios::app); //append to the expression to the end
-        for(int i=0;i<26;++i)
-        {
-            int num= sets[i];
-            string temp = to_string(num) + ";" ;
-            myFile << temp ;
-        }
-        // hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
-        myFile.close(); //close the file
+        saveFile(fileName,sets,hasSaved);
         return true;
     }
     return false;//failed to save the file
-}
-
-
-//store all expressions if file doesn't exist
-//otherwise rename or remove that file
-bool saveCommand(int sets[],string& input)
-{
-    unsigned int pos = input.find("SAVE");
-    string fileName = input.substr(pos+4);          //get fileName
-    removeSpace(fileName);
-    if(fileName == "")
-    {
-        cout << "Missing the file name." <<endl;
-        return true;
-    }
-    return saveHelper(fileName,sets);
-    // return true;
 }
 
 
@@ -776,7 +804,7 @@ void loadHelper(int sets[],string fileName)
 
 
 //print list of expressions
-bool showCommand(int *sets, string input, map<pair<string, int>, int> uniSet)
+bool showCommand(int *sets, string input, map<int, string> uniSet)
 {
     int pos = 0;                           //get LIST index in the input string  
     removeSpace(input);
@@ -796,7 +824,7 @@ bool showCommand(int *sets, string input, map<pair<string, int>, int> uniSet)
             if(sets[i] != -1)
             {
                 cout << char(setName+i) << " = ";
-                listHelper(sets[i],uniSet);
+                showHelper(sets[i],uniSet);
             }
         }
         return true;
@@ -806,9 +834,9 @@ bool showCommand(int *sets, string input, map<pair<string, int>, int> uniSet)
 
 
 //map a set of colors to their corresponding number
-void loadUniverse(map<pair<string, int>, int> &uniSet)
+void forwardUniverse(map<string, int> &uniSet)
 {
-  uniSet[<"WHITE"]   = 0;
+  uniSet["WHITE"]   = 0;
   uniSet["GOLD"]    = 1;
   uniSet["GRAY"]    = 2;
   uniSet["RED"]     = 3;
@@ -826,6 +854,28 @@ void loadUniverse(map<pair<string, int>, int> &uniSet)
   uniSet["BLACK"]   = 15;
 }
 
+//map a set of colors to their corresponding number
+void reverseUniverse(map<int, string> &uniSet)
+{
+  uniSet[0]   = "WHITE";
+  uniSet[1]   = "GOLD";
+  uniSet[2]   = "GRAY";
+  uniSet[3]   = "RED";
+  uniSet[4]   = "GREEN";
+  uniSet[5]   = "BLUE";
+  uniSet[6]   = "ORANGE";
+  uniSet[7]   = "PURPLE";
+  uniSet[8]   = "YELLOW";
+  uniSet[9]   = "VIOLET";
+  uniSet[10]  = "MAGENTA";
+  uniSet[11]  = "CYAN"; 
+  uniSet[12]  = "RUST";
+  uniSet[13]  = "NAVY";
+  uniSet[14]  = "BURGUNDY";
+  uniSet[15]  = "BLACK";
+}
+
+
 /*  Helper will token the set of colors
     Map each color to get a corresponding number
     Turn on the bit at index matching to that number.
@@ -833,7 +883,7 @@ void loadUniverse(map<pair<string, int>, int> &uniSet)
     @setNum: the value of bitset after flipping all bit presents in the color set
     @uniMap: set of colors and its equivalent number
  */
-bool uniHelper(string input, unsigned int &setNum, map<pair<string, int>, int> uniMap)
+bool uniHelper(string input, unsigned int &setNum, map<string, int> uniMap)
 {
   bitset<16> num;
   int firstBracket = input.find_first_of("{");
@@ -881,3 +931,122 @@ bool uniHelper(string input, unsigned int &setNum, map<pair<string, int>, int> u
   setNum = num.to_ulong(); //get the number represent color indexes.
   return true;
 }
+
+
+/*  Convert two sets to bitsets.
+    Take an intersection between setB and setA
+    Return true if the result of the intersection is the same as setA
+    or bitset of result - bitset of setA = 0
+    Otherwise, return false.
+    Suppose setB is greater than setA
+ */
+bool checkSubSet(string setA,string setB,int sets[])
+{    
+    bitset<16> bitA = sets[setA[0]-'A'];
+    bitset<16> bitB = sets[setB[0]-'A'];
+    // cout << "The bitset of bitA: " <<bitA.to_string()<<endl;
+    // cout << "The bitset of bitB: " <<bitB.to_string()<<endl;
+    //Take intersection setB and setA
+    bitB &= bitA;
+    bitset<16> bitC = bitB^bitA;
+    if(bitC.to_ulong() == 0)
+        return true;
+    return false;
+}
+
+/* Take XOR operation between two set
+   Two sets are equal when they have same element
+   or two sets have same of 1-bits.
+   Return true if equal.
+ */
+bool checkEqualSet(string setA,string setB,int sets[])
+{
+    bitset<16> bitA = sets[setA[0]-'A'];
+    bitset<16> bitB = sets[setB[0]-'A'];
+    //Take intersection setB and setA
+    bitB ^= bitA;
+    // bitset<16> bitC = bitB^bitA;
+    if(bitB.to_ulong() == 0)
+        return true;
+    return false;
+}
+
+
+/*  Call checkSubSet to determine 
+    subset or super set
+ */
+bool isCommand(int sets[],string input)
+{
+    string compareExp = input.substr(input.find("IS")+2);   //get comparison expression
+    removeSpace(compareExp);                                //remove all spaces betweeen two exps
+    unsigned int pos = compareExp.find_first_of("<>=");
+    string op = compareExp.substr(pos,1);                   //get operator
+    string setA = compareExp.substr(0,pos);
+    string setB = compareExp.substr(pos+1);
+    switch(op[0])
+    {        
+        case '<': if(checkSubSet(setA,setB,sets))
+                    cout << "Set "<< setA <<" is subset of Set "<< setB<<"."<<endl;
+                  else
+                    cout << "Set "<< setA <<" is not subset of Set "<< setB<<"."<<endl;
+                  return true;
+        case '>': if(checkSubSet(setB,setA,sets))
+                    cout << "Set "<< setA <<" is super-set of Set "<< setB<<"."<<endl;
+                  else
+                    cout << "Set "<< setA <<" is not super-set of Set "<< setB<<"."<<endl;
+                  return true;   
+        case '=': if(checkSubSet(setA,setB,sets))
+                    cout << "Set "<<setA<<" and Set "<<setB<<" contains same elements."<<endl;
+                  else
+                    cout << "Set "<<setA<<" and Set "<<setB<<" NOT contains same elements."<<endl;
+                  return true;                   
+        default:  return false;
+                  break;      
+    }          
+    return false;   //invalid command
+}
+
+
+/* 
+    Create a file with fileName,
+    Loop through the sets[], write each element into the file, delimited by ";"
+*/
+void saveFile(string fileName,int sets[],bool& hasSaved)
+{
+    ofstream myFile;
+    myFile.open(fileName,ios::app); //append to the expression to the end
+    for(int i=0;i<26;++i)
+    {
+        int num= sets[i];
+        string temp = to_string(num) + ";" ;
+        myFile << temp ;
+    }
+    hasSaved = true;    //turn SAVED flag on to detect EXIT WITHOUT SAVE
+    myFile.close(); //close the file
+}
+
+void exitCommand(int sets[],bool hasSaved,bool isEmpty)
+{
+    string ans = "";
+    
+    //ask you to save before exit
+    if(!hasSaved && !isEmpty)
+    {
+        cout << "Would you like to save your changes(Y/N): "; 
+        getline(cin,ans);
+        transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
+        if(ans == "Y" || ans == "YES")
+        {
+            string fileName = "";
+            cout << "Please enter your file name: ";
+            getline(cin,fileName);
+            transform(fileName.begin(), fileName.end(), fileName.begin(), ::toupper);
+            //call saveHelper to process save command
+            saveHelper(fileName,sets,hasSaved);           
+        }
+    }
+    else
+        exit(0);    //totalExpression is empty
+    exit(0);//close program
+}
+
