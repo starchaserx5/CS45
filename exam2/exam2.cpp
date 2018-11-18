@@ -18,7 +18,6 @@
 
 using namespace std;
  
- 
 bool illegalSet(string input);
 int whoIsFirst(const string &incoming);
 bool precedence(const string &incoming, const string &tos);
@@ -51,6 +50,10 @@ bool isCommand(int sets[],string input);
 bool checkEqualSet(string setA,string setB,int sets[]);
 void saveFile(string fileName,int sets[],bool& hasSaved);
 void exitCommand(int sets[],bool hasSaved,bool isEmpty);
+bool listCommand(int *sets, string input, map<int, string> uniSet);
+bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty);
+
+
 
 int main()
 {
@@ -63,9 +66,8 @@ int main()
     bool hasSaved = false;          //Check SAVE before exiting program
     bool isEmpty = true;          //Check if the set is empty
     bool inputCheck = false;
-    for(int i=0;i<26;++i)
+    for(int i=0;i<26;++i)          //intial value for each setset 
         sets[i]= -1;
-
     do
     {
         inputCheck = getInput(line);
@@ -80,7 +82,7 @@ int main()
                 cout << "--------------" << endl;
             }
         }
-        else if(!inputCheck)            //input is empty line
+        else             //input is empty line
         {
             //if user forgot to save and already enter one correct set.
             if (!hasSaved && !isEmpty)
@@ -127,7 +129,7 @@ bool illegalSet(string input)          //See if the user entered a double comma 
             input.find(",}") < size ||
             input.find("{{") < size ||
             input.find("}}") < size ||
-            input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{,}") < size);
+            input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ{,}") < size);
 }
  
 bool precedence(const string &incoming, const string &tos) //Return TRUE is incoming operator
@@ -160,7 +162,7 @@ bool convertToRPN(string input, string &output)
                            if(pos > input.size() || pos2 < pos)
                                return false;        //If not, signify that an invalid unnamed set was read in
                            parens = (input.substr(0,pos + 1)) + " "; //It is is valid, pull it out of the input
-                           if(illegalSet(parens)) return false;   //Did they enter a double comma?                                
+                           if(illegalSet(parens)) return false;   //Did they enter numbers or a double comma?                                
                            output += parens;        //Bad input!!
                            input.erase(0,pos + 1);  //and remove it from the input
                            break;
@@ -420,12 +422,13 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
 
     unsigned int posSet = input.find("SET");
     unsigned int posEqual = input.find("=");
-    unsigned int posBracket = input.find("{");
+    unsigned int openBracket = input.find("{");
+    unsigned int closeBracket = input.find("{");
     string output = ""; //result after process RPN expression
     string strSet = "";
     int index = -1; //index of a set
 
-    //  SET command
+    //  get a letter of a SET command 
     if (posSet < input.size() && posEqual < input.size())
     {
         // get a string between SET command and "=" sign
@@ -442,17 +445,36 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
                 cout << "The name of a set is invalid;" <<endl;
                 return false;
             }
-            // else
-            // {
-            //     cout << "index of the set is " << index
-            //      << "\nChar index is " << strSet[0] << ". "
-            //      << "Equal sign at pos is " << posEqual << endl;
-            // }
         }  
     }
     else
         return false;   //invalid command
-
+    
+    //Aternative entry of sets, NOT include "{"
+    if (openBracket > input.size() || closeBracket > input.size())
+    {
+        string expression = input.substr(posEqual+1);
+        removeSpace(expression);        
+        unsigned int setNum ;
+        //only numbers are allowed
+        if(expression.find_first_not_of("0123456789") < expression.size())
+            return false;
+        try
+        {
+            setNum= stoi(expression);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() <<"Should be a number."<< '\n';
+        }
+        
+        if(stoi(expression) > pow(2,16))
+            return false;               //not beyond 16-bit        
+        else
+            sets[index] = setNum;
+        isEmpty = false;    //at least 1 set existed
+        return true;    //valid alternative entry of a set
+    }
 
     input = input.substr(posEqual+1); // get the right expression
     if(!convertToRPN(input,output))
@@ -461,6 +483,54 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
     isEmpty = false;                //turn on Check Empty set
 
     return true;  //valid command
+}
+
+bool oldSetCommand(string &input, int sets[], map<string, int> uniSet, bool &isEmpty)
+{
+    //remove spaces trailing leading space
+    removeSpace(input);
+
+    unsigned int posSet = input.find("SET");
+    unsigned int posEqual = input.find("=");
+    unsigned int openBracket = input.find("{");
+    unsigned int closeBracket = input.find("{");
+    string output = ""; //result after process RPN expression
+    string strSet = "";
+    int index = -1; //index of a set
+    //Aternative entry of sets, NOT include "{"
+    if (openBracket > input.size() || closeBracket < input.size())
+    {
+    }
+
+    //  SET command
+    if (posSet < input.size() && posEqual < input.size())
+    {
+        // get a string between SET command and "=" sign
+        strSet = input.substr(posSet + 3, posEqual + 1);
+        while (strSet[0] == ' ')
+            strSet.erase(0, 1); //remove leading spaces
+
+        //find letter index
+        if ((int)strSet[0] >= 65 || (int)strSet[0] <= 90)
+        {
+            index = (int(strSet[0]) - 65); //get an index of a set
+            if (index < 0)
+            {
+                cout << "The name of a set is invalid;" << endl;
+                return false;
+            }
+        }
+    }
+    else
+        return false; //invalid command
+
+    input = input.substr(posEqual + 1); // get the right expression
+    if (!convertToRPN(input, output))
+        return false;
+    process(output, sets, index, uniSet);
+    isEmpty = false; //turn on Check Empty set
+
+    return true; //valid command
 }
 
 /*  Helper will convert the set of numbers to int
@@ -596,7 +666,12 @@ bool commandHelper(string input,unsigned int& index)
                         {
                             index = 4;          //LOAD
                             return true;                           
-                        }     
+                        }
+                        else if(commandMatching(input, "LIST", 4))
+                        {
+                            index = 6; //LIST
+                            return true;
+                        }
             case 'I' :  if(commandMatching(input,"IS",2))
                         {
                             index = 5;          //LOAD
@@ -639,6 +714,9 @@ bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,str
         case 5:
             return isCommand(sets,input);
             break;
+        case 6:
+            return listCommand(sets, input,revSet);
+            break;
         default:
             return false;   //invalid command
     }
@@ -646,7 +724,7 @@ bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,str
 
 bool helpCommand(string input)
 {
-    string fileName = "lab4.help";
+    string fileName = "exam2.help";
     if(checkFileName(fileName))
     {
         ifstream opFile(fileName);
@@ -803,6 +881,7 @@ void loadHelper(int sets[],string fileName,bool& isEmpty)
                 sets[index++] = stoi(line);
             }
             isEmpty = false;                        //Turn off isEmpty
+            cout<<"File already is already loaded."<<endl;
             opFile.close();
         }
         else
@@ -811,35 +890,68 @@ void loadHelper(int sets[],string fileName,bool& isEmpty)
 }
 
 
-//print list of expressions
+//print a particular set
 bool showCommand(int *sets, string input, map<int, string> uniSet)
 {
     int pos = 0;                           //get LIST index in the input string  
     removeSpace(input);
     pos = input.find("SHOW");
-    string getList = input.substr(pos);    
-    //no other parameter after or before LIST
-    if(getList != "SHOW" && getList.size() != 4)
+    string command = input.substr(pos,4);   //get "SHOW" string
+    string setIndex = input.substr(pos+4);  //get set number want to see the content   
+    removeSpace(setIndex);
+    if(setIndex == "")
     {
-        cout<<"Command SHOW is ambiguous."<<endl;
+        cout<<"Missing the name of a set."<<endl;
         return true;
     }
-    else
+    else 
     {
-        unsigned int setName = 65;                      //set name in char
-        for(int i=0;i<26;++i)
-        {
-            if(sets[i] != -1)
+        int setName = int(setIndex[0]); //set name in char
+        if(setName<65 || setName>90)        
+            cout<<"Index of the set is invalid or out of range (A-Z)."<<endl;
+        else
+        {            
+            if(sets[setName-65] != -1)
             {
-                cout << char(setName+i) << " = ";
-                showHelper(sets[i],uniSet);
+                cout << char(setName) << " = ";
+                showHelper(sets[setName-65],uniSet);
             }
+            else
+                cout<<"The set "<<char(setName)<<" is empty."<<endl;
         }
         return true;
     }
     return false;    //command valid
 }
 
+//print list of expressions
+bool listCommand(int *sets, string input, map<int, string> uniSet)
+{
+    int pos = 0; //get LIST index in the input string
+    removeSpace(input);
+    pos = input.find("LIST");
+    string getList = input.substr(pos);
+    //no other parameter after or before LIST
+    if (getList != "LIST" && getList.size() != 4)
+    {
+        cout << "Command LIST is ambiguous." << endl;
+        return true;
+    }
+    else
+    {
+        unsigned int setName = 65; //set name in char
+        for (int i = 0; i < 26; ++i)
+        {
+            if (sets[i] != -1)
+            {
+                cout << char(setName + i) << " = ";
+                showHelper(sets[i], uniSet);
+            }
+        }
+        return true;
+    }
+    return false; //command valid
+}
 
 //map a set of colors to their corresponding number
 void forwardUniverse(map<string, int> &uniSet)
@@ -863,24 +975,24 @@ void forwardUniverse(map<string, int> &uniSet)
 }
 
 //map a set of colors to their corresponding number
-void reverseUniverse(map<int, string> &uniSet)
+void reverseUniverse(map<int, string> &revSet)
 {
-  uniSet[0]   = "WHITE";
-  uniSet[1]   = "GOLD";
-  uniSet[2]   = "GRAY";
-  uniSet[3]   = "RED";
-  uniSet[4]   = "GREEN";
-  uniSet[5]   = "BLUE";
-  uniSet[6]   = "ORANGE";
-  uniSet[7]   = "PURPLE";
-  uniSet[8]   = "YELLOW";
-  uniSet[9]   = "VIOLET";
-  uniSet[10]  = "MAGENTA";
-  uniSet[11]  = "CYAN"; 
-  uniSet[12]  = "RUST";
-  uniSet[13]  = "NAVY";
-  uniSet[14]  = "BURGUNDY";
-  uniSet[15]  = "BLACK";
+  revSet[0]   = "WHITE";
+  revSet[1]   = "GOLD";
+  revSet[2]   = "GRAY";
+  revSet[3]   = "RED";
+  revSet[4]   = "GREEN";
+  revSet[5]   = "BLUE";
+  revSet[6]   = "ORANGE";
+  revSet[7]   = "PURPLE";
+  revSet[8]   = "YELLOW";
+  revSet[9]   = "VIOLET";
+  revSet[10]  = "MAGENTA";
+  revSet[11]  = "CYAN"; 
+  revSet[12]  = "RUST";
+  revSet[13]  = "NAVY";
+  revSet[14]  = "BURGUNDY";
+  revSet[15]  = "BLACK";
 }
 
 
