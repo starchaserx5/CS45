@@ -39,8 +39,8 @@ bool saveHelper(string fileName, int sets[],bool& checkSaved);
 bool setCommand(string &input, int sets[],bool& isEmpty);
 bool setHelper(string& input,unsigned int& setNum);
 bool saveCommand(int sets[], string& input,bool& checkSaved,bool& isEmpty);
-void loadHelper(int sets[],string fileName);
-bool loadCommand(int sets[], string input);
+void loadHelper(int sets[],string fileName,bool& isEmpty);
+bool loadCommand(int sets[], string input,bool& isEmpty);
 void showHelper(const int &num, map<int, string> uniSet);
 bool showCommand(int *sets,string input,map<int,string> uniSet);
 void forwardUniverse(map<string,int>& uniSet);
@@ -62,26 +62,33 @@ int main()
     reverseUniverse(revSet);
     bool hasSaved = false;          //Check SAVE before exiting program
     bool isEmpty = true;          //Check if the set is empty
+    bool inputCheck = false;
     for(int i=0;i<26;++i)
         sets[i]= -1;
 
     do
     {
-        //if user enter empty line and doesn't enter any sets before
-        //hasSaved must be false, isEmpty is false
-        if(getInput(line) && (!hasSaved && !isEmpty))
+        inputCheck = getInput(line);
+        if(inputCheck)
         {
-            exitCommand(sets,hasSaved,isEmpty);
+            //check if the input is invalid or not
+            if (commandInput(line, sets, uniSet, revSet, hasSaved, isEmpty)) //See if we can convert infix to postfix notation
+                cout << "--------------" << endl;
+            else //If not, tell the user that there was bad input
+            {
+                cout << "Illegal command! Please type HELP for the instructions." << endl;
+                cout << "--------------" << endl;
+            }
         }
-        //check if the input is invalid or not
-        if(commandInput(line,sets,uniSet,revSet,hasSaved,isEmpty)) //See if we can convert infix to postfix notation
-            cout <<"--------------"<<endl;
-        else                           //If not, tell the user that there was bad input
+        else if(!inputCheck)            //input is empty line
         {
-            cout<<"Illegal command! Please type HELP for the instructions."<<endl;
-            cout <<"--------------"<<endl;
-        }
-    }while(getInput(line));           //As long as there is input from the keyboard
+            //if user forgot to save and already enter one correct set.
+            if (!hasSaved && !isEmpty)
+                exitCommand(sets, hasSaved, isEmpty);
+            else
+                exit(0);    //exit without saving
+        }                
+    }while(inputCheck);           //As long as there is input from the keyboard
     return 0;
 }
  
@@ -627,7 +634,7 @@ bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,str
             return showCommand(sets,input,revSet);
             break;
         case 4:
-            return loadCommand(sets,input);
+            return loadCommand(sets,input,isEmpty);
             break;
         case 5:
             return isCommand(sets,input);
@@ -754,7 +761,7 @@ bool saveHelper(string fileName, int sets[],bool& hasSaved)
 
 
 //LOAD command
-bool loadCommand(int sets[], string input)
+bool loadCommand(int sets[], string input,bool& isEmpty)
 {
     unsigned int pos = input.find("LOAD");
     string fileName = input.substr(pos + 4); //get fileName
@@ -764,14 +771,14 @@ bool loadCommand(int sets[], string input)
         cout << "Missing the file name." << endl;
         return true;//invalid command
     }
-    loadHelper(sets,fileName);
+    loadHelper(sets,fileName,isEmpty);
     return true;
 }
 
 //check the file name
 //if  the file exist read through the text file.
 //token it by ";" delimeter and assign each number to an array element of sets[]
-void loadHelper(int sets[],string fileName)
+void loadHelper(int sets[],string fileName,bool& isEmpty)
 {
     string ans = "";
     removeSpace(fileName);
@@ -795,6 +802,7 @@ void loadHelper(int sets[],string fileName)
             {
                 sets[index++] = stoi(line);
             }
+            isEmpty = false;                        //Turn off isEmpty
             opFile.close();
         }
         else
