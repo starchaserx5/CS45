@@ -36,11 +36,11 @@ void removeSpace(string& input);
 bool helpCommand(string input);
 bool checkFileName(string fileName);
 bool saveHelper(string fileName, int sets[],bool& checkSaved);
-bool setCommand(string &input, int sets[],bool& isEmpty);
+// bool setCommand(string &input, int sets[],bool& isEmpty);
 bool setHelper(string& input,unsigned int& setNum);
 bool saveCommand(int sets[], string& input,bool& checkSaved,bool& isEmpty);
-void loadHelper(int sets[],string fileName,bool& isEmpty);
-bool loadCommand(int sets[], string input,bool& isEmpty);
+void loadHelper(int sets[],string fileName,bool& isEmpty,bool& hasSaved);
+bool loadCommand(int sets[], string input,bool& isEmpty,bool& hasSaved);
 void showHelper(const int &num, map<int, string> uniSet);
 bool showCommand(int *sets,string input,map<int,string> uniSet);
 void forwardUniverse(map<string,int>& uniSet);
@@ -52,7 +52,7 @@ bool checkEqualSet(string setA,string setB,int sets[]);
 void saveFile(string fileName,int sets[],bool& hasSaved);
 void exitCommand(int sets[],bool hasSaved,bool isEmpty);
 bool listCommand(int *sets, string input, map<int, string> uniSet);
-bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty);
+bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty,bool& checkSaved);
 
 
 
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
         User must be enter the name of program to run
         follow with LOAD command and fileName.
     */
-    if(argc>1 && argc <4)
+    if(argc>1 && argc <=3)
     {
         //convert LOAD command to upper.
         string loadCommand(argv[1]);
@@ -88,10 +88,10 @@ int main(int argc, char* argv[])
         {
             string fileName(argv[2]);       //get fileName
             transform(fileName.begin(), fileName.end(), fileName.begin(), ::toupper);      
-            loadHelper(sets,fileName,isEmpty);    
+            loadHelper(sets,fileName,isEmpty,hasSaved);    
         }
     }
-    else
+    else if(argc>3)
         cout<<"Only accept one file at a time."<<endl;
 
     do
@@ -188,7 +188,7 @@ bool convertToRPN(string input, string &output)
                            if(pos > input.size() || pos2 < pos)
                                return false;        //If not, signify that an invalid unnamed set was read in
                            parens = (input.substr(0,pos + 1)) + " "; //It is is valid, pull it out of the input
-                           if(illegalSet(parens)) return false;   //Did they enter numbers or a double comma?                                
+                           if(illegalSet(parens)) return false;   //Did they enter numbers or a double comma?
                            output += parens;        //Bad input!!
                            input.erase(0,pos + 1);  //and remove it from the input
                            break;
@@ -441,7 +441,7 @@ unsigned int setCompliment(string x, string &output, int sets[])
     @equalPos: return the position of "=" sign if there is "SET" command
 */
 
-bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
+bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty,bool& checkSaved)
 {
     //remove spaces trailing leading space
     removeSpace(input);    
@@ -498,14 +498,14 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
             }
             catch (const std::exception &e)
             {
-                std::cerr << e.what() << "Should be a number." << '\n';
+                cout<< "The number is out of range. Only accept up to 16-bit." << '\n';
             }
-
-            if (stoi(expression) > pow(2, 16))
-                return false; //not beyond 16-bit
-            else
-                sets[index] = setNum;
+            // if (setNum > pow(2, 16))
+            //     return false; //not beyond 16-bit
+            // else
+            sets[index] = setNum;
             isEmpty = false; //at least 1 set existed
+            checkSaved = false;//need to save before exiting
             return true;     //valid alternative entry of a set
         }
     }
@@ -515,7 +515,7 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
         return false;
     process(output,sets,index,uniSet);
     isEmpty = false;                //turn on Check Empty set
-
+    checkSaved = false;//need to save before exiting
     return true;  //valid command
 }
 
@@ -728,7 +728,7 @@ bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,str
     switch (index)
     {
         case 0:
-            return setCommand(input,sets,uniSet,isEmpty);
+            return setCommand(input,sets,uniSet,isEmpty,hasSaved);
             break;
         case 1:
             return saveCommand(sets,input,hasSaved,isEmpty);
@@ -740,7 +740,7 @@ bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,str
             return showCommand(sets,input,revSet);
             break;
         case 4:
-            return loadCommand(sets,input,isEmpty);
+            return loadCommand(sets,input,isEmpty,hasSaved);
             break;
         case 5:
             return isCommand(sets,input);
@@ -870,7 +870,7 @@ bool saveHelper(string fileName, int sets[],bool& hasSaved)
 
 
 //LOAD command
-bool loadCommand(int sets[], string input,bool& isEmpty)
+bool loadCommand(int sets[], string input,bool& isEmpty,bool& hasSaved)
 {
     unsigned int pos = input.find("LOAD");
     string fileName = input.substr(pos + 4); //get fileName
@@ -880,14 +880,14 @@ bool loadCommand(int sets[], string input,bool& isEmpty)
         cout << "Missing the file name." << endl;
         return true;//invalid command
     }
-    loadHelper(sets,fileName,isEmpty);
+    loadHelper(sets,fileName,isEmpty,hasSaved);
     return true;
 }
 
 //check the file name
 //if  the file exist read through the text file.
 //token it by ";" delimeter and assign each number to an array element of sets[]
-void loadHelper(int sets[],string fileName,bool& isEmpty)
+void loadHelper(int sets[],string fileName,bool& isEmpty,bool& hasSaved)
 {
     string ans = "";
     removeSpace(fileName);
@@ -912,6 +912,7 @@ void loadHelper(int sets[],string fileName,bool& isEmpty)
                 sets[index++] = stoi(line);
             }
             isEmpty = false;                        //Turn off isEmpty
+            hasSaved = true;                        //Saved the current state
             cout<<"File already is already loaded."<<endl;
             opFile.close();
         }
@@ -1050,10 +1051,10 @@ bool uniHelper(string input, unsigned int &setNum, map<string, int> uniMap)
     if (pos < subSet.size())
     {
       string color = subSet.substr(0, pos);
-      int uniNum = uniMap[color];
-      if (uniNum < 0 || uniNum > 15)
+      int uniNum = uniMap[color];               //size of map will increase if the key doesn't match
+      if (uniMap.size()>16)
       {
-        cout << "Invalid Color in the universe" << endl;
+        cout << "Invalid Color in the universe. Please type HELP for more information." << endl;
         return false;
       }
       else
