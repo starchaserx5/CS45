@@ -15,6 +15,7 @@
 #include <iterator>
 #include <map>
 #include <utility>
+#include <math.h>
 
 using namespace std;
  
@@ -74,18 +75,24 @@ int main(int argc, char* argv[])
         User must be enter the name of program to run
         follow with LOAD command and fileName.
     */
-    if(argc>1)
+    if(argc>1 && argc <4)
     {
         //convert LOAD command to upper.
         string loadCommand(argv[1]);
-        string fileName(argv[2]);       //get fileName
-        transform(loadCommand.begin(), loadCommand.end(), loadCommand.begin(), ::toupper);
-        transform(fileName.begin(), fileName.end(), fileName.begin(), ::toupper);
+        transform(loadCommand.begin(), loadCommand.end(), loadCommand.begin(), ::toupper);      
         if(!(loadCommand == "LOAD"))
-            cout << "LOAD command invalid"<<endl;
+            cout << "LOAD command invalid."<<endl;
+        else if (argv[2] == nullptr)
+            cout << "Mising the fileName."<<endl;
         else
+        {
+            string fileName(argv[2]);       //get fileName
+            transform(fileName.begin(), fileName.end(), fileName.begin(), ::toupper);      
             loadHelper(sets,fileName,isEmpty);    
+        }
     }
+    else
+        cout<<"Only accept one file at a time."<<endl;
 
     do
     {
