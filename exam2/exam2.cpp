@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 
     /*  Using argv and argc to load a file 
         User must be enter the name of program to run
-        follow with LOAD command and fileName
+        follow with LOAD command and fileName.
     */
     if(argc>1)
     {
