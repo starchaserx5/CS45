@@ -20,7 +20,15 @@ LIST -  List all sets and their contents;
 SHOW -  See a content of a particular set;         
         Usage: SHOW name-of-set
         Name-of-set is a letter between A-Z
-IS   -  
+        For example: SHOW A
+IS   -  IS expression = expression
+        IS expression > expression
+        IS expression < expression
+        Compare two expressions;
+        Expression is a set name represented by a letter(A-Z);
+        For example: IS A > B
+                     IS B < C
+                     IS C = A
 SAVE -  Save all current sets to a file; 
         For example: SAVE nameoffile 
 LOAD -  Load all sets from a file
