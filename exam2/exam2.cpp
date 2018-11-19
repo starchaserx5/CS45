@@ -423,10 +423,13 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
     unsigned int posSet = input.find("SET");
     unsigned int posEqual = input.find("=");
     unsigned int openBracket = input.find("{");
-    unsigned int closeBracket = input.find("{");
+    unsigned int closeBracket = input.find("}");
+    unsigned int cAlternative;                       //check if aternative entry appear
+    int index = -1; //index of a set
     string output = ""; //result after process RPN expression
     string strSet = "";
-    int index = -1; //index of a set
+    string expression = input.substr(posEqual+1);
+    removeSpace(expression);
 
     //  get a letter of a SET command 
     if (posSet < input.size() && posEqual < input.size())
@@ -451,29 +454,34 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
         return false;   //invalid command
     
     //Aternative entry of sets, NOT include "{"
-    if (openBracket > input.size() || closeBracket > input.size())
+    if ((openBracket > input.size() || closeBracket > input.size()))
     {
-        string expression = input.substr(posEqual+1);
-        removeSpace(expression);        
-        unsigned int setNum ;
+        unsigned int check1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ+*\\");
+        unsigned int check2 = expression.find_first_of("0123456789");
+        unsigned int setNum;
+        if(check1 < expression.size() && check2 < expression.size())
+            return false;       //invalid command, numbers and letters can be mixed
+          
+        //if entry is an alternative of sets
         //only numbers are allowed
-        if(expression.find_first_not_of("0123456789") < expression.size())
-            return false;
-        try
+        if(check1 > expression.size() && check2 < expression.size())
         {
-            setNum= stoi(expression);
+            try
+            {
+                setNum = stoi(expression);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << "Should be a number." << '\n';
+            }
+
+            if (stoi(expression) > pow(2, 16))
+                return false; //not beyond 16-bit
+            else
+                sets[index] = setNum;
+            isEmpty = false; //at least 1 set existed
+            return true;     //valid alternative entry of a set
         }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() <<"Should be a number."<< '\n';
-        }
-        
-        if(stoi(expression) > pow(2,16))
-            return false;               //not beyond 16-bit        
-        else
-            sets[index] = setNum;
-        isEmpty = false;    //at least 1 set existed
-        return true;    //valid alternative entry of a set
     }
 
     input = input.substr(posEqual+1); // get the right expression
@@ -497,10 +505,7 @@ bool oldSetCommand(string &input, int sets[], map<string, int> uniSet, bool &isE
     string output = ""; //result after process RPN expression
     string strSet = "";
     int index = -1; //index of a set
-    //Aternative entry of sets, NOT include "{"
-    if (openBracket > input.size() || closeBracket < input.size())
-    {
-    }
+
 
     //  SET command
     if (posSet < input.size() && posEqual < input.size())
