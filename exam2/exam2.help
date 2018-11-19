@@ -1,0 +1,32 @@
+****************************TEST 2 HELPER****************************;
+
+Operator precedence relations(decreasing order);
+1 - NOT (~);
+2 - AND (*);
+3 - OR (+);
+4 - SET DIFFERENCE (\);
+
+Command's instructions:;
+SET  -  SET x = expressions 
+        Create with x is a set name is represent by a letter(A-Z).
+        An expression is a set or multiple sets of words represent their color.
+        A set of words need to be put in a pair of the curly brackets.                             
+        In another way, the expression can be a number represent as an alternative entry of sets without the curly brackets.        
+        For example: SET A = {WHITE,GOLD,GRAY}
+                     SET B = {WHITE,GOLD,GRAY}\{YELLOW,GOLD}
+                     SET C = ~A + B
+                     SET D = 7    //{WHITE,GOLD,GRAY}         
+LIST -  List all sets and their contents;
+SHOW -  See a content of a particular set;         
+        Usage: SHOW name-of-set
+        Name-of-set is a letter between A-Z
+IS   -  
+SAVE -  Save all current sets to a file; 
+        For example: SAVE nameoffile 
+LOAD -  Load all sets from a file
+        For example: LOAD nameoffile;
+HELP -  View the instructions;
+
+To EXIT the program, press ENTER on new command input;
+
+****************************TEST 2 HELPER****************************;
