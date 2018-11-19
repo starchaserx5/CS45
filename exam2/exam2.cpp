@@ -55,8 +55,9 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty);
 
 
 
-int main()
+int main(int argc, char* argv[])
 {
+
     string line, output;            //Create input (line) and output (output) variables for functions to use
     int sets[26] = {};              //Create a 26 element array of sets
     map<string, int> uniSet;        //forward Set color to nums
@@ -68,6 +69,24 @@ int main()
     bool inputCheck = false;
     for(int i=0;i<26;++i)          //intial value for each setset 
         sets[i]= -1;
+
+    /*  Using argv and argc to load a file 
+        User must be enter the name of program to run
+        follow with LOAD command and fileName
+    */
+    if(argc>1)
+    {
+        //convert LOAD command to upper
+        string loadCommand(argv[1]);
+        string fileName(argv[2]);       //get fileName
+        transform(loadCommand.begin(), loadCommand.end(), loadCommand.begin(), ::toupper);
+        transform(fileName.begin(), fileName.end(), fileName.begin(), ::toupper);
+        if(!(loadCommand == "LOAD"))
+            cout << "LOAD command invalid"<<endl;
+        else
+            loadHelper(sets,fileName,isEmpty);    
+    }
+
     do
     {
         inputCheck = getInput(line);
