@@ -15,6 +15,7 @@
 #include <iterator>
 #include <map>
 #include <utility>
+#include <cmath>
 
 using namespace std;
  
@@ -696,11 +697,13 @@ bool commandHelper(string input,unsigned int& index)
                             index = 6; //LIST
                             return true;
                         }
+                        else return false;
             case 'I' :  if(commandMatching(input,"IS",2))
                         {
                             index = 5;          //LOAD
                             return true;                           
-                        }                                                                                                                                                                               
+                        }      
+                        else return false;
             default:    return false;   //invalid command                                            
         }
     }
@@ -718,29 +721,22 @@ bool commandInput(string &input, int sets[], map<string, int> uniSet,map<int,str
         return false;
     
     
-    switch (index)
+    switch(index)
     {
         case 0:
             return setCommand(input,sets,uniSet,isEmpty);
-            break;
         case 1:
             return saveCommand(sets,input,hasSaved,isEmpty);
-            break;
         case 2:
             return helpCommand(input);
-            break;
         case 3:
             return showCommand(sets,input,revSet);
-            break;
         case 4:
             return loadCommand(sets,input,isEmpty);
-            break;
         case 5:
             return isCommand(sets,input);
-            break;
         case 6:
             return listCommand(sets, input,revSet);
-            break;
         default:
             return false;   //invalid command
     }
@@ -858,7 +854,6 @@ bool saveHelper(string fileName, int sets[],bool& hasSaved)
         saveFile(fileName,sets,hasSaved);
         return true;
     }
-    return false;//failed to save the file
 }
 
 
@@ -945,7 +940,6 @@ bool showCommand(int *sets, string input, map<int, string> uniSet)
         }
         return true;
     }
-    return false;    //command valid
 }
 
 //print list of expressions
@@ -974,7 +968,6 @@ bool listCommand(int *sets, string input, map<int, string> uniSet)
         }
         return true;
     }
-    return false; //command valid
 }
 
 //map a set of colors to their corresponding number
@@ -1144,8 +1137,7 @@ bool isCommand(int sets[],string input)
                   else
                     cout << "Set "<<setA<<" and Set "<<setB<<" NOT contains same elements."<<endl;
                   return true;                   
-        default:  return false;
-                  break;      
+        default:  return false;   
     }          
     return false;   //invalid command
 }
@@ -1191,6 +1183,5 @@ void exitCommand(int sets[],bool hasSaved,bool isEmpty)
     }
     else
         exit(0);    //totalExpression is empty
-    exit(0);//close program
 }
 
