@@ -11,7 +11,8 @@ SET  -  SET x = expressions
         Create with x is a set name is represent by a letter(A-Z).
         An expression is a set or multiple sets of words represent their color.
         A set of words need to be put in a pair of the curly brackets.                             
-        In another way, the expression can be a number represent as an alternative entry of sets without the curly brackets.        
+        In another way, the expression can be a number represent as an alternative entry of sets without the curly brackets.
+        The letters, the sets, and a number cannot be mixed together.        
         For example: SET A = {WHITE,GOLD,GRAY}
                      SET B = {WHITE,GOLD,GRAY}\{YELLOW,GOLD}
                      SET C = ~A + B
