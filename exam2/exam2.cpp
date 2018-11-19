@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
     */
     if(argc>1)
     {
-        //convert LOAD command to upper
+        //convert LOAD command to upper.
         string loadCommand(argv[1]);
         string fileName(argv[2]);       //get fileName
         transform(loadCommand.begin(), loadCommand.end(), loadCommand.begin(), ::toupper);
