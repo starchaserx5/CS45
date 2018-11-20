@@ -53,7 +53,8 @@ void saveFile(string fileName,int sets[],bool& hasSaved);
 void exitCommand(int sets[],bool hasSaved,bool isEmpty);
 bool listCommand(int *sets, string input, map<int, string> uniSet);
 bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty,bool& checkSaved);
-
+bool userInputFile(string ans);
+bool question(string title);
 
 
 int main(int argc, char* argv[])
@@ -804,6 +805,22 @@ bool saveCommand(int sets[],string& input,bool& checkSaved,bool& isEmpty)
     // return true;
 }
 
+bool userInputFile(string ans)
+{
+    getline(cin,ans);
+    transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
+    return (ans == "Y" || ans == "YES");
+}
+
+bool question(string title)
+{
+    string line;
+    cout << title;
+    getline(cin, line);
+    transform(line.begin(), line.end(), line.begin(), ::toupper);
+    return line[0] == 'Y';
+}
+
 
 //Create a new file 
 //if file already exists, overwrite it or give another file name
@@ -819,53 +836,42 @@ bool saveHelper(string fileName, int sets[],bool& hasSaved)
     {
         cout << "File already exists" << endl;
         //erase file
-        cout << "Would you like to erase the file(Y/N): ";
-        getline(cin,ans);
-        transform(ans.begin(),ans.end(),ans.begin(),::toupper);         //convert to upper case
-        if(ans == "Y" || ans == "YES")
+        if(question("Would you like to overwrite file(Y/N): "))
         {
             remove(fileName.c_str());                                   //remove the file
-            cout << "Old file is removed succesfully." << endl;
+            cout << "Old file is overwritten succesfully." << endl;
             saveFile(fileName,sets,hasSaved);                                    //write a new file
             return true;
         }
-        else
+        else if(question("Would you like to rename file(Y/N): "))
         {
-            cout << "Would you like to give another file name(Y/N): ";
+            cout << "Enter new file name: " << endl;
             getline(cin, ans);
+            removeSpace(ans);
             transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
-            if (ans == "Y" || ans == "YES")
+            //check extension missing
+            while(checkFileName(ans))
             {
-                cout << "Enter new file name: " << endl;
+                cout << "File already exists. Please enter another name:" << endl;
                 getline(cin, ans);
-                removeSpace(ans);
-                transform(ans.begin(), ans.end(), ans.begin(), ::toupper);
-                //check extension missing
-                while(checkFileName(ans))
-                {
-                    cout << "File already exists. Please enter another name:" << endl;
-                    getline(cin, ans);
-                }                               
-                rename(fileName.c_str(), ans.c_str());
-                cout << "File successfully renamed." << endl;
-                saveFile(fileName,sets,hasSaved);                        //write a new file
-                return true;
             }
-            else
-            {
-                //remove old file and write a new file with samename
-                remove(fileName.c_str());
-                saveFile(fileName,sets,hasSaved);                        //write a new file
-                return true;
-            }
-        }
+            rename(fileName.c_str(), ans.c_str());
+            cout << "File successfully renamed." << endl;
+            return true;
+          }
+          else if(question("Would you like to erase the current file(Y/N): " ))
+          {
+            remove(fileName.c_str());
+            cout << "File successfully erased." << endl;
+            return true;
+          }
+          return true;
     }
     else
     {
         saveFile(fileName,sets,hasSaved);
         return true;
     }
-    return false;//failed to save the file
 }
 
 
