@@ -466,14 +466,13 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
         removeSpace(strSet); //remove leading spaces
 
         //find letter index
-        if((int)strSet[0] >= 65 || (int)strSet[0] <= 90)
+        if((int)strSet[0] >= 65 && (int)strSet[0] <= 90)
         {
             index = (int(strSet[0]) - 65); //get an index of a set
-            if(index<=0 || (index >= 26 && index <= 70) || index >=97) //checks for invalid set name outside of A-Z
-            {
-                cout << "The name of a set is invalid;" <<endl;
-                return false;
-            }
+        }
+        else
+        {
+            return false;
         } 
     }
     else
