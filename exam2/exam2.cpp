@@ -1,7 +1,7 @@
 /*
   CS45 DISCRETE STRUCTURES WITH COMPUTER SCIENCE APPLICATIONS
   Professor PAUL WILKINSON
-  Tom Nguyen
+  Tom Nguyen and Kyle Benalcazar
   Test 2
 */
 #include <iostream>
@@ -447,6 +447,7 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
     int index = -1; //index of a set
     string output = ""; //result after process RPN expression
     string strSet = "";
+    string newStrSet;
     string expression = input.substr(posEqual+1);
     removeSpace(expression);
 
@@ -455,6 +456,13 @@ bool setCommand(string &input, int sets[],map<string,int> uniSet,bool& isEmpty)
     {
         // get a string between SET command and "=" sign
         strSet = input.substr(posSet + 3, posEqual + 1);
+        newStrSet = strSet.substr(posSet, posEqual);
+
+        if(newStrSet[1] != '=')
+        {
+            return false;
+        }
+      
         while (strSet[0] == ' ')
             strSet.erase(0, 1); //remove leading spaces
 
